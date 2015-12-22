@@ -1,35 +1,3 @@
-### SQL Asset Import Go - [GO](https://golang.org/) Import Script to Hornbill
-
-### Quick links
-- [Installation](#installation)
-- [Config](#config)
-    - [Instance Config](#InstanceConfig)
-    - [SQL Config](#SQLConf)
-    - [Asset Types](#AssetTypes)
-    - [Asset Field Mapping (Generic)](#AssetGenericFieldMapping)
-    - [Asset Field Mapping (Type Specific)](#AssetTypeFieldMapping)
-- [Execute](#execute)
-- [Testing](testing)
-- [Scheduling](#scheduling)
-- [Logging](#logging)
-- [Error Codes](#error codes)
-- [Change Log](#change log)
-
-# Installation
-
-#### Windows
-* Download the archive containing the import executable
-* Extract zip into a folder you would like the application to run from e.g. `C:\asset_import\`
-* Open '''conf_sccm_assetscomputer.json''' and add in the necessary configration
-* Open Command Line Prompt as Administrator
-* Change Directory to the folder with db_asset_import.exe `C:\asset_import\`
-* Run the command db_asset_import.exe -dryrun=true -file=conf_sccm_assetscomputer.json
-
-# config
-
-Example JSON File:
-
-```json
 {
   "UserName": "",
   "Password": "",
@@ -40,7 +8,7 @@ Example JSON File:
       "Server": "",
       "Database": "",
       "UserName": "",
-      "Password": "",
+      "Password": "!",
       "Port": 1433,
       "AssetID": "MachineName",
       "Encrypt": false,
@@ -132,63 +100,3 @@ Example JSON File:
       "h_subnet_mask":""
   }
 }
-```
-
-#### InstanceConfig
-* "UserName" - Instance User Name with Create / Update User Rights
-* "Password" - Instance Password for the above User
-* "InstanceId" - Instance Id
-* "Entity" - The extended details entity for the assets being imported (for example, AssetsComputer for all Computer/VM type assets)
-* "AssetIdentifier" - The asset attribute that holds the unique asset identifier (so that the code can work out which asset records are to be inserted or updated)
-
-#### SQLConf
-* "Driver" the driver to use to connect to the database that holds the asset information:
-** mssql = Microsoft SQL Server (2005 or above)
-** mysql = MySQL Server
-* "Server" The address of the SQL server
-* "UserName" The username for the SQL database
-* "Password" Password for above User Name
-* "Port" SQL port
-* "AssetID" Specifies the unique identifier field from the query below
-* "Encrypt" Boolean value to specify wether the connection between the script and the database should be encrypted. ''NOTE'': There is a bug in SQL Server 2008 and below that causes the connection to fail if the connection is encrypted. Only set this to true if your SQL Server has been patched accordingly.
-* "Query" The basic SQL query to retrieve asset information from the data source. See "AssetTypes below for further filtering
-
-#### AssetTypes
-* The left element contains the Asset Type Name, and the right contains the additional SQL filter to be appended to the Query from SQLConf, to retrieve assets of that asset type. Note: the Asset Type Name needs to match a correct Asset Type Name in your Hornbill Instance.
-
-#### AssetGenericFieldMapping 
-* Maps data in to the generic Asset record
-* Any value wrapped with [] will be populated with the corresponding response from the SQL Query
-* Any Other Value is treated literally as written example:
-    * "h_name":"[MachineName]", - the value of MachineName is taken from the SQL output and populated within this field
-    * "h_description":"This is a description", - the value of "h_description" would be populated with "This is a description" for ALL imported assets
-	* "h_site":"[SiteName]", - When a string is passed to the h_site field, the script attempts to resolve the given site name against the Site entity, and populates this (and h_site_id) with the correct site information. If the site cannot be resolved, the site details are not populated for the Asset record being imported.
-
-#### AssetTypeFieldMapping 
-* Maps data in to the type-specific Asset record, so the same rules as AssetGenericFieldMapping
-
-# Execute
-Command Line Parameters
-* file - Defaults to `conf.json` - Name of the Configuration file to load
-* dryrun - Defaults to `false` - Set to True and the XMLMC for Create and Update assets will not be called and instead the XML will be dumped to the log file, this is to aid in debugging the initial connection information.
-* zone - Defaults to `eur` - Allows you to change the ZONE used for creating the XMLMC EndPoint URL https://{ZONE}api.hornbill.com/{INSTANCE}/
-
-# Testing
-If you run the application with the argument dryrun=true then no assets will be created or updated, the XML used to create or update will be saved in the log file so you can ensure the data mappings are correct before running the import.
-
-'db_asset_import.exe -dryrun=true'
-
-# Scheduling
-
-### Windows
-You can schedule db_asset_import.exe to run with any optional command line argument from Windows Task Scheduler.
-* Ensure the user account running the task has rights to db_asset_import.exe and the containing folder.
-* Make sure the Start In parameter contains the folder where db_asset_import.exe resides in otherwise it will not be able to pick up the correct path.
-
-# Logging
-All Logging output is saved in the log directory in the same directory as the executable the file name contains the date and time the import was run 'Asset_Import_2015-11-06T14-26-13Z.log'
-
-# Error Codes
-* `100` - Unable to create log File
-* `101` - Unable to create log folder
-* `102` - Unable to Load Configuration File
