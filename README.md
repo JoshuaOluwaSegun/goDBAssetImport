@@ -146,7 +146,7 @@ Example JSON File:
 ** mssql = Microsoft SQL Server (2005 or above)
 ** mysql = MySQL Server 4.1+, MariaDB
 ** mysql320 = MySQL Server v3.2.0 to v4.0
-** swsql = SupportworksSQL
+** swsql = Supportworks SQL (Core Services v3.x)
 * "Server" The address of the SQL server
 * "UserName" The username for the SQL database
 * "Password" Password for above User Name
