@@ -7,19 +7,20 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"github.com/hornbill/goApiLib"
+	"github.com/hornbill/pb"
 	"log"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/hornbill/pb"
-	"github.com/hornbill/goApiLib"
 	//SQL Package
 	"github.com/hornbill/sqlx"
 	//SQL Drivers
 	_ "github.com/hornbill/go-mssqldb"
 	_ "github.com/hornbill/mysql"
+	_ "github.com/hornbill/mysql320" //MySQL v3.2.0 to v5 driver - Provides SWSQL (MySQL 4.0.16) support
 )
 
 //----- Constants -----
@@ -204,6 +205,11 @@ func main() {
 	//-- Logout */
 	defer logout()
 
+	//Set SWSQLDriver to mysql320
+	if SQLImportConf.SQLConf.Driver == "swsql" {
+		SQLImportConf.SQLConf.Driver = "mysql320"
+	}
+
 	//Get asset types, process accordingly
 	BaseSQLQuery = SQLImportConf.SQLConf.Query
 	for k, v := range SQLImportConf.AssetTypes {
@@ -364,6 +370,15 @@ func buildConnectionString() string {
 			connectString = connectString + "3306"
 		}
 		connectString = connectString + ")/" + SQLImportConf.SQLConf.Database
+	case "mysql320":
+		var dbPortSetting string
+		if SQLImportConf.SQLConf.Port != 0 {
+			dbPortSetting = strconv.Itoa(SQLImportConf.SQLConf.Port)
+		} else {
+			dbPortSetting = "3306"
+		}
+		connectString = "tcp:" + SQLImportConf.SQLConf.Server + ":" + dbPortSetting
+		connectString = connectString + "*" + SQLImportConf.SQLConf.Database + "/" + SQLImportConf.SQLConf.UserName + "/" + SQLImportConf.SQLConf.Password
 	}
 	return connectString
 }
@@ -719,9 +734,15 @@ func getFieldValue(k string, v string, u map[string]interface{}) string {
 		if valFieldMap == "HBAssetType" {
 			valFieldMap = StrAssetType
 		} else {
-			valFieldMap = fmt.Sprintf("%v", u[valFieldMap])
+			if u[valFieldMap] != nil {
+				if SQLImportConf.SQLConf.Driver == "mysql320" {
+					valFieldMap = fmt.Sprintf("%s", u[valFieldMap])
+				} else {
+					valFieldMap = fmt.Sprintf("%v", u[valFieldMap])
+				}
+			}
 		}
-		if valFieldMap != "<nil>" {
+		if valFieldMap != "" {
 			if strings.Contains(strings.ToLower(k), "date") == true {
 				valFieldMap = checkDateString(valFieldMap)
 			}
