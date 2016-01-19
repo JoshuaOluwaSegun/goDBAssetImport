@@ -144,7 +144,9 @@ Example JSON File:
 #### SQLConf
 * "Driver" the driver to use to connect to the database that holds the asset information:
 ** mssql = Microsoft SQL Server (2005 or above)
-** mysql = MySQL Server
+** mysql = MySQL Server 4.1+, MariaDB
+** mysql320 = MySQL Server v3.2.0 to v4.0
+** swsql = SupportworksSQL
 * "Server" The address of the SQL server
 * "UserName" The username for the SQL database
 * "Password" Password for above User Name
