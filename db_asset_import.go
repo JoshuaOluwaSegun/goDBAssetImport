@@ -734,20 +734,23 @@ func getFieldValue(k string, v string, u map[string]interface{}) string {
 		if valFieldMap == "HBAssetType" {
 			valFieldMap = StrAssetType
 		} else {
-			if u[valFieldMap] != nil {
-				if SQLImportConf.SQLConf.Driver == "mysql320" {
-					valFieldMap = fmt.Sprintf("%s", u[valFieldMap])
-				} else {
-					valFieldMap = fmt.Sprintf("%v", u[valFieldMap])
-				}
+			if SQLImportConf.SQLConf.Driver == "mysql320" {
+				valFieldMap = fmt.Sprintf("%s", u[valFieldMap])
+			} else {
+				valFieldMap = fmt.Sprintf("%v", u[valFieldMap])
 			}
 		}
 		if valFieldMap != "" {
 			if strings.Contains(strings.ToLower(k), "date") == true {
 				valFieldMap = checkDateString(valFieldMap)
 			}
-
-			fieldMap = strings.Replace(fieldMap, val, valFieldMap, 1)
+			if strings.Contains(valFieldMap, "[") == true {
+				fieldMap = strings.Replace(fieldMap, val, "", 1)
+			} else {
+				fieldMap = strings.Replace(fieldMap, val, valFieldMap, 1)
+			}
+		} else {
+			fieldMap = strings.Replace(fieldMap, val, "", 1)
 		}
 	}
 	return fieldMap

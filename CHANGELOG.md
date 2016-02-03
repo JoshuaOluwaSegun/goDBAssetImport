@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+## 1.1.1 (February 03, 2016)
+
+Features:
+
+  - Bug fix: Mapping name was being written to asset columns when column value from database was blank or NULL
+
+
+=======
+>>>>>>> 36c6f26d87d599f53a0c131323e25c551e72f75d
 ## 1.1.0 (January 19, 2016)
 
 Features:
