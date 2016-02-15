@@ -745,13 +745,16 @@ func getFieldValue(k string, v string, u map[string]interface{}) string {
 				valFieldMap = checkDateString(valFieldMap)
 			}
 			if strings.Contains(valFieldMap, "[") == true {
-				fieldMap = strings.Replace(fieldMap, val, "", 1)
+				valFieldMap = ""
 			} else {
-				fieldMap = strings.Replace(fieldMap, val, valFieldMap, 1)
+				//20160215 Check for NULL (<nil>) field value
+				//Cannot do this when Scanning SQL data, as we don't now the returned cols - we're using MapScan
+				if valFieldMap == "<nil>" {
+					valFieldMap = ""
+				}
 			}
-		} else {
-			fieldMap = strings.Replace(fieldMap, val, "", 1)
 		}
+		fieldMap = strings.Replace(fieldMap, val, valFieldMap, 1)
 	}
 	return fieldMap
 }
