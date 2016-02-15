@@ -1,3 +1,10 @@
+## 1.1.2 (February 15, 2016)
+
+Features:
+
+  - Bug fix: NULL values within asset records being replaced by the string <nil>
+
+
 ## 1.1.1 (February 03, 2016)
 
 Features:
