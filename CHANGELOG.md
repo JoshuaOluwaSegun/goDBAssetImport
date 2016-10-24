@@ -1,3 +1,11 @@
+## 1.2.0 (October 24th, 2016)
+
+Features:
+
+  - Replaced Hornbill Instance Username and Password authentication with API Key functionality
+  - Improved performance by adding support for concurrent import API calls
+  - Added ability to specify whether the Asset Owner and Asset Used By records are Hornbill Contacts or Hornbill Users
+
 ## 1.1.2 (February 15, 2016)
 
 Features:

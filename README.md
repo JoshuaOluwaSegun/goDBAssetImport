@@ -23,7 +23,9 @@
 * Open '''conf_sccm_assetscomputer.json''' and add in the necessary configration
 * Open Command Line Prompt as Administrator
 * Change Directory to the folder with db_asset_import.exe `C:\asset_import\`
-* Run the command db_asset_import.exe -dryrun=true -file=conf_sccm_assetscomputer.json
+* Run the command :
+For Windows 32bit Systems: db_asset_import_w32.exe -dryrun=true -file=conf_sccm_assetscomputer.json
+For Windows 64bit Systems: db_asset_import_w64.exe -dryrun=true -file=conf_sccm_assetscomputer.json
 
 # config
 
@@ -31,10 +33,11 @@ Example JSON File:
 
 ```json
 {
-  "UserName": "",
-  "Password": "",
-  "InstanceID": "",
+  "APIKey": "",
+  "InstanceId": "",
   "AssetIdentifier":"h_name",
+  "OwnedByType": "0",
+  "UsedByType":"0",
   "SQLConf": {
       "Driver": "mssql",
       "Server": "",
@@ -80,8 +83,7 @@ Example JSON File:
       "h_operational_state":"",
       "h_order_date":"",
       "h_order_number":"",
-      "h_owned_by":"",
-      "h_owned_by_name":"",
+      "h_owned_by":"[UserName]",
       "h_product_id":"",
       "h_received_date":"",
       "h_residual_value":"",
@@ -89,8 +91,7 @@ Example JSON File:
       "h_scheduled_retire_date":"",
       "h_supplier_id":"",
       "h_supported_by":"",
-      "h_used_by":"",
-      "h_used_by_name":"",
+      "h_used_by":"[UserName]",
       "h_version":"",
       "h_warranty_expires":"",
       "h_warranty_start":""
@@ -135,11 +136,11 @@ Example JSON File:
 ```
 
 #### InstanceConfig
-* "UserName" - Instance User Name with Create / Update User Rights
-* "Password" - Instance Password for the above User
+* "APIKey" - a Hornbill API key for a user account with the correct permissions to carry out all of the required API calls
 * "InstanceId" - Instance Id
-* "Entity" - The extended details entity for the assets being imported (for example, AssetsComputer for all Computer/VM type assets)
 * "AssetIdentifier" - The asset attribute that holds the unique asset identifier (so that the code can work out which asset records are to be inserted or updated)
+* "OwnedByType" - 0 if the h_owned_by username is that of a Hornbill User, 1 if the username is that of a Hornbill Contact. The mapped User ID will be used to retrieve the customer record, whose name will be populated in to the h_used_by_name field against the asset.
+* "InstanceId" - 0 if the h_owned_by username is that of a Hornbill User, 1 if the username is that of a Hornbill Contact. The mapped User ID will be used to retrieve the customer record, whose name will be populated in to the h_owned_by_name field against the asset
 
 #### SQLConf
 * "Driver" the driver to use to connect to the database that holds the asset information:
@@ -158,15 +159,15 @@ Example JSON File:
 #### AssetTypes
 * The left element contains the Asset Type Name, and the right contains the additional SQL filter to be appended to the Query from SQLConf, to retrieve assets of that asset type. Note: the Asset Type Name needs to match a correct Asset Type Name in your Hornbill Instance.
 
-#### AssetGenericFieldMapping 
+#### AssetGenericFieldMapping
 * Maps data in to the generic Asset record
 * Any value wrapped with [] will be populated with the corresponding response from the SQL Query
 * Any Other Value is treated literally as written example:
     * "h_name":"[MachineName]", - the value of MachineName is taken from the SQL output and populated within this field
     * "h_description":"This is a description", - the value of "h_description" would be populated with "This is a description" for ALL imported assets
-	* "h_site":"[SiteName]", - When a string is passed to the h_site field, the script attempts to resolve the given site name against the Site entity, and populates this (and h_site_id) with the correct site information. If the site cannot be resolved, the site details are not populated for the Asset record being imported.
+  	* "h_site":"[SiteName]", - When a string is passed to the h_site field, the script attempts to resolve the given site name against the Site entity, and populates this (and h_site_id) with the correct site information. If the site cannot be resolved, the site details are not populated for the Asset record being imported.
 
-#### AssetTypeFieldMapping 
+#### AssetTypeFieldMapping
 * Maps data in to the type-specific Asset record, so the same rules as AssetGenericFieldMapping
 
 # Execute
@@ -178,7 +179,7 @@ Command Line Parameters
 # Testing
 If you run the application with the argument dryrun=true then no assets will be created or updated, the XML used to create or update will be saved in the log file so you can ensure the data mappings are correct before running the import.
 
-'db_asset_import.exe -dryrun=true'
+'db_asset_import_w64.exe -dryrun=true'
 
 # Scheduling
 

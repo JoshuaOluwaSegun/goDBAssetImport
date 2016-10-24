@@ -1,18 +1,19 @@
 {
-  "UserName": "",
-  "Password": "",
-  "InstanceID": "",
+  "APIKey": "",
+  "InstanceId": "",
   "AssetIdentifier":"h_name",
+  "OwnedByType": "0",
+  "UsedByType":"0",
   "SQLConf": {
       "Driver": "mssql",
       "Server": "",
       "Database": "",
       "UserName": "",
-      "Password": "!",
+      "Password": "",
       "Port": 1433,
       "AssetID": "MachineName",
       "Encrypt": false,
-      "Query": "SELECT OARSys.ResourceID AS [AssetID], OARSys.User_Name0 AS [UserName], OARSys.Netbios_Name0 AS [MachineName], OARSys.Resource_Domain_OR_Workgr0 AS [NETDomain], dbo.v_GS_OPERATING_SYSTEM.Caption0 AS [OperatingSystemCaption], OARSys.Operating_System_Name_and0 AS [OperatingSystem], dbo.v_GS_OPERATING_SYSTEM.Version0 AS [OperatingSystemVersion], dbo.v_GS_OPERATING_SYSTEM.CSDVersion0 AS [ServicePackVersion], dbo.v_GS_COMPUTER_SYSTEM.Manufacturer0 AS [SystemManufacturer], dbo.v_GS_COMPUTER_SYSTEM.Model0 AS [SystemModel], dbo.v_GS_PC_BIOS.SerialNumber0 AS [SystemSerialNumber], OAProc.MaxClockSpeed0 AS [ProcessorSpeedGHz], OAProc.Name0 AS [ProcessorName], dbo.v_GS_COMPUTER_SYSTEM.NumberOfProcessors0 AS [NumberofProcessors], dbo.v_GS_X86_PC_MEMORY.TotalPhysicalMemory0 AS [MemoryKB], dbo.v_GS_LOGICAL_DISK.Size0 AS [DiskSpaceMB], dbo.v_GS_LOGICAL_DISK.FreeSpace0 AS [FreeDiskSpaceMB], OAIP.IP_Addresses0 AS [IPAddress], OAMac.MAC_Addresses0 AS [MACAddress], dbo.v_GS_PC_BIOS.Description0 AS [BIOSDescription], dbo.v_GS_PC_BIOS.ReleaseDate0 AS [BIOSReleaseDate], dbo.v_GS_PC_BIOS.SMBIOSBIOSVersion0 AS [SMBIOSVersion], dbo.v_GS_SYSTEM.SystemRole0 AS [SystemType], OASysEncl.ChassisTypes0 AS [ChassisTypes], OASysEncl.TimeStamp AS [ChassisDate], OARSys.AD_Site_Name0 AS [SiteName] FROM dbo.v_R_System OUTER APPLY (SELECT TOP 1 * FROM dbo.v_R_System b WHERE b.Netbios_Name0 = dbo.v_R_System.Netbios_Name0 ORDER BY SMS_UUID_Change_Date0 DESC) OARSys OUTER APPLY (SELECT TOP 1 dbo.v_GS_SYSTEM_ENCLOSURE.* FROM dbo.v_GS_SYSTEM_ENCLOSURE WHERE dbo.v_GS_SYSTEM_ENCLOSURE.ResourceID = dbo.v_R_System.ResourceID ORDER BY TimeStamp DESC) OASysEncl OUTER APPLY (SELECT TOP 1 IP_Addresses0, ROW_NUMBER() OVER (order by (SELECT 0)) AS rowNum FROM dbo.v_RA_System_IPAddresses WHERE dbo.v_RA_System_IPAddresses.ResourceID = dbo.v_R_System.ResourceID ORDER BY rowNum DESC) OAIP OUTER APPLY (SELECT TOP 1 MAC_Addresses0 FROM dbo.v_RA_System_MACAddresses WHERE dbo.v_RA_System_MACAddresses.ResourceID = dbo.v_R_System.ResourceID ) OAMac OUTER APPLY (SELECT TOP 1 MaxClockSpeed0, Name0 FROM dbo.v_GS_PROCESSOR WHERE dbo.v_GS_PROCESSOR.ResourceID = dbo.v_R_System.ResourceID ORDER BY TimeStamp DESC) OAProc LEFT JOIN dbo.v_GS_X86_PC_MEMORY ON dbo.v_GS_X86_PC_MEMORY.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_OPERATING_SYSTEM ON dbo.v_GS_OPERATING_SYSTEM.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_COMPUTER_SYSTEM ON dbo.v_GS_COMPUTER_SYSTEM.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_PC_BIOS ON dbo.v_GS_PC_BIOS.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_LOGICAL_DISK ON dbo.v_GS_LOGICAL_DISK.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_FullCollectionMembership ON (dbo.v_FullCollectionMembership.ResourceID = v_R_System.ResourceID) LEFT JOIN dbo.v_GS_SYSTEM ON dbo.v_GS_SYSTEM.ResourceID = dbo.v_R_System.ResourceID WHERE dbo.v_GS_LOGICAL_DISK.DeviceID0 = 'C:' AND dbo.v_FullCollectionMembership.CollectionID = 'SMS00001' "
+      "Query": "SELECT dbo.v_R_System.ResourceID AS [AssetID], dbo.v_R_System.User_Name0 AS [UserName], dbo.v_R_System.Netbios_Name0 AS [MachineName], dbo.v_R_System.Resource_Domain_OR_Workgr0 AS [NETDomain], dbo.v_GS_OPERATING_SYSTEM.Caption0 AS [OperatingSystemCaption], dbo.v_R_System.Operating_System_Name_and0 AS [OperatingSystem], dbo.v_GS_OPERATING_SYSTEM.Version0 AS [OperatingSystemVersion], dbo.v_GS_OPERATING_SYSTEM.CSDVersion0 AS [ServicePackVersion], dbo.v_GS_COMPUTER_SYSTEM.Manufacturer0 AS [SystemManufacturer], dbo.v_GS_COMPUTER_SYSTEM.Model0 AS [SystemModel], dbo.v_GS_PC_BIOS.SerialNumber0 AS [SystemSerialNumber], OAProc.MaxClockSpeed0 AS [ProcessorSpeedGHz], OAProc.Name0 AS [ProcessorName], dbo.v_GS_COMPUTER_SYSTEM.NumberOfProcessors0 AS [NumberofProcessors], dbo.v_GS_X86_PC_MEMORY.TotalPhysicalMemory0 AS [MemoryKB], dbo.v_GS_LOGICAL_DISK.Size0 AS [DiskSpaceMB], dbo.v_GS_LOGICAL_DISK.FreeSpace0 AS [FreeDiskSpaceMB], OAIP.IP_Addresses0 AS [IPAddress], OAMac.MAC_Addresses0 AS [MACAddress], dbo.v_GS_PC_BIOS.Description0 AS [BIOSDescription], dbo.v_GS_PC_BIOS.ReleaseDate0 AS [BIOSReleaseDate], dbo.v_GS_PC_BIOS.SMBIOSBIOSVersion0 AS [SMBIOSVersion], dbo.v_GS_SYSTEM.SystemRole0 AS [SystemType], OASysEncl.ChassisTypes0 AS [ChassisTypes], OASysEncl.TimeStamp AS [ChassisDate], dbo.v_R_System.AD_Site_Name0 AS [SiteName] FROM dbo.v_R_System OUTER APPLY (SELECT TOP 1 dbo.v_GS_SYSTEM_ENCLOSURE.* FROM dbo.v_GS_SYSTEM_ENCLOSURE WHERE dbo.v_GS_SYSTEM_ENCLOSURE.ResourceID = dbo.v_R_System.ResourceID ORDER BY TimeStamp DESC) OASysEncl OUTER APPLY (SELECT TOP 1 IP_Addresses0, ROW_NUMBER() OVER (order by (SELECT 0)) AS rowNum FROM dbo.v_RA_System_IPAddresses WHERE dbo.v_RA_System_IPAddresses.ResourceID = dbo.v_R_System.ResourceID ORDER BY rowNum DESC) OAIP OUTER APPLY (SELECT TOP 1 MAC_Addresses0 FROM dbo.v_RA_System_MACAddresses WHERE dbo.v_RA_System_MACAddresses.ResourceID = dbo.v_R_System.ResourceID ) OAMac OUTER APPLY (SELECT TOP 1 MaxClockSpeed0, Name0 FROM dbo.v_GS_PROCESSOR WHERE dbo.v_GS_PROCESSOR.ResourceID = dbo.v_R_System.ResourceID ORDER BY TimeStamp DESC) OAProc LEFT JOIN dbo.v_GS_X86_PC_MEMORY ON dbo.v_GS_X86_PC_MEMORY.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_OPERATING_SYSTEM ON dbo.v_GS_OPERATING_SYSTEM.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_COMPUTER_SYSTEM ON dbo.v_GS_COMPUTER_SYSTEM.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_PC_BIOS ON dbo.v_GS_PC_BIOS.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_LOGICAL_DISK ON dbo.v_GS_LOGICAL_DISK.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_FullCollectionMembership ON (dbo.v_FullCollectionMembership.ResourceID = v_R_System.ResourceID) LEFT JOIN dbo.v_GS_SYSTEM ON dbo.v_GS_SYSTEM.ResourceID = dbo.v_R_System.ResourceID WHERE dbo.v_GS_LOGICAL_DISK.DeviceID0 = 'C:' AND dbo.v_FullCollectionMembership.CollectionID = 'SMS00001' "
   },
   "AssetTypes": {
       "Server": "AND OASysEncl.ChassisTypes0 IN (2, 17, 18, 19, 20, 21, 22, 23)",
@@ -48,8 +49,7 @@
       "h_operational_state":"",
       "h_order_date":"",
       "h_order_number":"",
-      "h_owned_by":"",
-      "h_owned_by_name":"",
+      "h_owned_by":"[UserName]",
       "h_product_id":"",
       "h_received_date":"",
       "h_residual_value":"",
@@ -57,8 +57,7 @@
       "h_scheduled_retire_date":"",
       "h_supplier_id":"",
       "h_supported_by":"",
-      "h_used_by":"",
-      "h_used_by_name":"",
+      "h_used_by":"[UserName]",
       "h_version":"",
       "h_warranty_expires":"",
       "h_warranty_start":""
