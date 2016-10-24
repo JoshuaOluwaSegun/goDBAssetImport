@@ -175,6 +175,7 @@ Command Line Parameters
 * file - Defaults to `conf.json` - Name of the Configuration file to load
 * dryrun - Defaults to `false` - Set to True and the XMLMC for Create and Update assets will not be called and instead the XML will be dumped to the log file, this is to aid in debugging the initial connection information.
 * zone - Defaults to `eur` - Allows you to change the ZONE used for creating the XMLMC EndPoint URL https://{ZONE}api.hornbill.com/{INSTANCE}/
+* concurrent - defaults to 6, with a maximum of 10. Allows you to change the number of concurrent threads used to process the import. This can improve performance on slow imports, but using too many threads can have an effect on the performance of your Hornbill instance.
 
 # Testing
 If you run the application with the argument dryrun=true then no assets will be created or updated, the XML used to create or update will be saved in the log file so you can ensure the data mappings are correct before running the import.
