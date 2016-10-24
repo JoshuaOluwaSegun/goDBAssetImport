@@ -139,8 +139,8 @@ Example JSON File:
 * "APIKey" - a Hornbill API key for a user account with the correct permissions to carry out all of the required API calls
 * "InstanceId" - Instance Id
 * "AssetIdentifier" - The asset attribute that holds the unique asset identifier (so that the code can work out which asset records are to be inserted or updated)
-* "OwnedByType" - 0 if the h_owned_by username is that of a Hornbill User, 1 if the username is that of a Hornbill Contact. The mapped User ID will be used to retrieve the customer record, whose name will be populated in to the h_used_by_name field against the asset.
-* "InstanceId" - 0 if the h_owned_by username is that of a Hornbill User, 1 if the username is that of a Hornbill Contact. The mapped User ID will be used to retrieve the customer record, whose name will be populated in to the h_owned_by_name field against the asset
+* "OwnedByType" - 0 if the h_owned_by username is that of a Hornbill User, 1 if the username is that of a Hornbill Contact. The mapped User ID will be used to retrieve the customer record, whose name will be populated in to the h_owned_by_name field against the asset.
+* "UsedByType" - 0 if the h_used_by username is that of a Hornbill User, 1 if the username is that of a Hornbill Contact. The mapped User ID will be used to retrieve the customer record, whose name will be populated in to the h_used_by_name field against the asset
 
 #### SQLConf
 * "Driver" the driver to use to connect to the database that holds the asset information:
