@@ -1,3 +1,9 @@
+## 1.2.1 (October 25th, 2016)
+
+Features:
+
+  - Removed specification of Asset Owner or Used By as Hornbill Contacts, to be consistent with the Service Manager application
+
 ## 1.2.0 (October 24th, 2016)
 
 Features:

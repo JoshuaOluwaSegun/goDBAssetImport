@@ -2,8 +2,6 @@
   "APIKey": "",
   "InstanceId": "",
   "AssetIdentifier":"h_name",
-  "OwnedByType": "0",
-  "UsedByType":"0",
   "SQLConf": {
       "Driver": "mssql",
       "Server": "",

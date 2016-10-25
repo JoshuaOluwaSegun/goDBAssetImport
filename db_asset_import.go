@@ -25,7 +25,7 @@ import (
 )
 
 //----- Constants -----
-const version = "1.2.0"
+const version = "1.2.1"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----
@@ -80,8 +80,6 @@ type sqlImportConfStruct struct {
 	URL                      string
 	Entity                   string
 	AssetIdentifier          string
-	OwnedByType              string
-	UsedByType               string
 	SQLConf                  sqlConfStruct
 	AssetTypes               map[string]interface{}
 	AssetGenericFieldMapping map[string]interface{}
@@ -529,7 +527,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 		if ownedByIsInCache {
 			ownedByName = ownedByNameCache
 		} else {
-			ownedByIsOnInstance, ownedByNameInstance := searchCustomer(ownedByID, SQLImportConf.OwnedByType, espXmlmc)
+			ownedByIsOnInstance, ownedByNameInstance := searchCustomer(ownedByID, espXmlmc)
 			//-- If Returned set output
 			if ownedByIsOnInstance {
 				ownedByName = ownedByNameInstance
@@ -537,7 +535,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 		}
 	}
 	if ownedByName != "" {
-		ownedByURN = "urn:sys:" + SQLImportConf.OwnedByType + ":" + ownedByName + ":" + ownedByID
+		ownedByURN = "urn:sys:0:" + ownedByName + ":" + ownedByID
 	}
 
 	//Get Used By name
@@ -551,7 +549,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 		if usedByIsInCache {
 			usedByName = usedByNameCache
 		} else {
-			usedByIsOnInstance, usedByNameInstance := searchCustomer(usedByID, SQLImportConf.UsedByType, espXmlmc)
+			usedByIsOnInstance, usedByNameInstance := searchCustomer(usedByID, espXmlmc)
 			//-- If Returned set output
 			if usedByIsOnInstance {
 				usedByName = usedByNameInstance
@@ -559,7 +557,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 		}
 	}
 	if usedByName != "" {
-		usedByURN = "urn:sys:" + SQLImportConf.UsedByType + ":" + usedByName + ":" + usedByID
+		usedByURN = "urn:sys:0:" + usedByName + ":" + usedByID
 	}
 
 	//Get/Set params from map stored against FieldMapping
@@ -914,12 +912,12 @@ func customerInCache(customerID string) (bool, string) {
 }
 
 // seachSite -- Function to check if passed-through  site  name is on the instance
-func searchCustomer(custID string, custType string, espXmlmc *apiLib.XmlmcInstStruct) (bool, string) {
+func searchCustomer(custID string, espXmlmc *apiLib.XmlmcInstStruct) (bool, string) {
 	boolReturn := false
 	strReturn := ""
 	//Get Analyst Info
 	espXmlmc.SetParam("customerId", custID)
-	espXmlmc.SetParam("customerType", custType)
+	espXmlmc.SetParam("customerType", "0")
 	XMLCustomerSearch, xmlmcErr := espXmlmc.Invoke("apps/"+appServiceManager, "shrGetCustomerDetails")
 	if xmlmcErr != nil {
 		logger(4, "Unable to Search for Customer ["+custID+"]: "+fmt.Sprintf("%v", xmlmcErr), true)
