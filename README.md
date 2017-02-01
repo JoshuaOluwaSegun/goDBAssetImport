@@ -36,7 +36,7 @@ Example JSON File:
   "APIKey": "",
   "InstanceId": "",
   "AssetIdentifier":"h_name",
-  "LogSizeBytes":"1000000",
+  "LogSizeBytes":1000000,
   "SQLConf": {
       "Driver": "mssql",
       "Server": "",
