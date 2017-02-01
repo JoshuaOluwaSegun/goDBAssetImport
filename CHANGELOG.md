@@ -2,7 +2,6 @@
 
 Features:
   - Refactored code in to separate Go files, for easier maintenance
-  - Improved performance by adding support for concurrent asset processing
   - Provided a more detailed log output when errors occur
   - The tool now supports a configuration defined maximum log file size, and will create multiple log files for an import where necessary
 
