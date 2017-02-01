@@ -36,6 +36,7 @@ Example JSON File:
   "APIKey": "",
   "InstanceId": "",
   "AssetIdentifier":"h_name",
+  "LogSizeBytes":"1000000",
   "SQLConf": {
       "Driver": "mssql",
       "Server": "",
@@ -137,6 +138,7 @@ Example JSON File:
 * "APIKey" - a Hornbill API key for a user account with the correct permissions to carry out all of the required API calls
 * "InstanceId" - Instance Id
 * "AssetIdentifier" - The asset attribute that holds the unique asset identifier (so that the code can work out which asset records are to be inserted or updated)
+* "LogSizeBytes" - The maximum size that the generated Log Files should be, in bytes. Setting this value to 0 will cause the tool to create one log file only and not split the results between multiple logs.
 
 #### SQLConf
 * "Driver" the driver to use to connect to the database that holds the asset information:
@@ -173,6 +175,7 @@ Command Line Parameters
 * file - Defaults to `conf.json` - Name of the Configuration file to load
 * dryrun - Defaults to `false` - Set to True and the XMLMC for Create and Update assets will not be called and instead the XML will be dumped to the log file, this is to aid in debugging the initial connection information.
 * zone - Defaults to `eur` - Allows you to change the ZONE used for creating the XMLMC EndPoint URL https://{ZONE}api.hornbill.com/{INSTANCE}/
+* concurrent - defaults to `1`. This is to specify the number of assets that should be imported concurrently, and can be an integer between 1 and 10 (inclusive). 1 is the slowest level of import, but does not affect performance of your Hornbill instance, and 10 will process the import much more quickly but could affect instance performance while the import is running.
 
 # Testing
 If you run the application with the argument dryrun=true then no assets will be created or updated, the XML used to create or update will be saved in the log file so you can ensure the data mappings are correct before running the import.

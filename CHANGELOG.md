@@ -1,3 +1,15 @@
+## 1.3.0 (February 1st, 2017)
+
+Features:
+  - Refactored code in to separate Go files, for easier maintenance
+  - Improved performance by adding support for concurrent asset processing
+  - Provided a more detailed log output when errors occur
+  - The tool now supports a configuration defined maximum log file size, and will create multiple log files for an import where necessary
+
+Defects fixed:
+  - Updating Last User or Owner columns for existing assets replaced the user URN with a user ID
+  - Updating a Primary column required a change to a Related entity columm
+
 ## 1.2.1 (October 25th, 2016)
 
 Features:
