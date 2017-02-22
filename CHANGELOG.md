@@ -1,3 +1,8 @@
+## 1.3.1 (February 22nd, 2017)
+
+Defect fix:
+  - Removed unnecessary double-quotes from configuration file
+
 ## 1.3.0 (February 1st, 2017)
 
 Features:
