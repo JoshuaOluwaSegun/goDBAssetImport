@@ -41,6 +41,7 @@ Example JSON File:
       "Driver": "mssql",
       "Server": "",
       "Database": "",
+      "Authentication":"Windows",
       "UserName": "",
       "Password": "",
       "Port": 1433,
@@ -142,11 +143,15 @@ Example JSON File:
 
 #### SQLConf
 * "Driver" the driver to use to connect to the database that holds the asset information:
-** mssql = Microsoft SQL Server (2005 or above)
-** mysql = MySQL Server 4.1+, MariaDB
-** mysql320 = MySQL Server v3.2.0 to v4.0
-** swsql = Supportworks SQL (Core Services v3.x)
+    * mssql = Microsoft SQL Server (2005 or above)
+    * mysql = MySQL Server 4.1+, MariaDB
+    * mysql320 = MySQL Server v3.2.0 to v4.0
+    * swsql = Supportworks SQL (Core Services v3.x)
 * "Server" The address of the SQL server
+* "Database" The name of the Database to connect to
+* Authentication - The tupe of authentication to use to connect to the SQL server. Can be either:
+    * Windows - Windows Account authentication, uses the logged-in Windows account to authenticate
+    * SQL - uses SQL Server authentication, and requires the Username and Password parameters (below) to be populated
 * "UserName" The username for the SQL database
 * "Password" Password for above User Name
 * "Port" SQL port

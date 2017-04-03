@@ -7,6 +7,7 @@
       "Driver": "mssql",
       "Server": "",
       "Database": "",
+      "Authentication":"Windows",
       "UserName": "",
       "Password": "",
       "Port": 1433,

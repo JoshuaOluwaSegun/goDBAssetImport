@@ -20,8 +20,13 @@ func buildConnectionString() string {
 	case "mssql":
 		connectString = "server=" + SQLImportConf.SQLConf.Server
 		connectString = connectString + ";database=" + SQLImportConf.SQLConf.Database
-		connectString = connectString + ";user id=" + SQLImportConf.SQLConf.UserName
-		connectString = connectString + ";password=" + SQLImportConf.SQLConf.Password
+		if SQLImportConf.SQLConf.Authentication == "Windows" {
+			connectString = connectString + ";Trusted_Connection=True"
+		} else {
+			connectString = connectString + ";user id=" + SQLImportConf.SQLConf.UserName
+			connectString = connectString + ";password=" + SQLImportConf.SQLConf.Password
+		}
+
 		if SQLImportConf.SQLConf.Encrypt == false {
 			connectString = connectString + ";encrypt=disable"
 		}

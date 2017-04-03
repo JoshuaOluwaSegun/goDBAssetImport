@@ -1,3 +1,9 @@
+## 1.3.2 (April 3rd, 2017)
+
+Features:
+  - Added support for Windows authentication against MSSQL Server
+  - Added example configuration files for all asset types
+
 ## 1.3.1 (February 22nd, 2017)
 
 Defect fix:

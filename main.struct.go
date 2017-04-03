@@ -2,18 +2,19 @@ package main
 
 import (
 	"encoding/xml"
-	"github.com/hornbill/goApiLib"
 	"sync"
 	"time"
+
+	"github.com/hornbill/goApiLib"
 )
 
 //----- Constants -----
-const version = "1.3.0"
+const version = "1.3.2"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----
 var (
-	maxLogFileSize 			int64
+	maxLogFileSize      int64
 	SQLImportConf       sqlImportConfStruct
 	XmlmcInstanceConfig xmlmcConfig
 	Sites               []siteListStruct
@@ -73,15 +74,16 @@ type sqlImportConfStruct struct {
 }
 
 type sqlConfStruct struct {
-	Driver   string
-	Server   string
-	UserName string
-	Password string
-	Port     int
-	Query    string
-	Database string
-	Encrypt  bool
-	AssetID  string
+	Driver         string
+	Server         string
+	Database       string
+	Authentication string
+	UserName       string
+	Password       string
+	Port           int
+	Query          string
+	Encrypt        bool
+	AssetID        string
 }
 type siteLookupStruct struct {
 	Enabled  bool
@@ -98,17 +100,17 @@ type xmlmcResponse struct {
 }
 
 type xmlmcUpdateResponse struct {
-	MethodResult string       `xml:"status,attr"`
+	MethodResult string      `xml:"status,attr"`
 	UpdatedCols  updatedCols `xml:"params>primaryEntityData>record"`
-	State        stateStruct  `xml:"state"`
+	State        stateStruct `xml:"state"`
 }
 type updatedCols struct {
 	ColList []updatedCol `xml:",any"`
 }
 
 type updatedCol struct {
-	XMLName	xml.Name	`xml:""`
-	Amount	string		`xml:",chardata"`
+	XMLName xml.Name `xml:""`
+	Amount  string   `xml:",chardata"`
 }
 
 //Site Structs
