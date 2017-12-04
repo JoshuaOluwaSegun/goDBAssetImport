@@ -1,6 +1,5 @@
 {
-  "UserName": "",
-  "Password": "",
+  "APIKey": "",
   "InstanceID": "",
   "AssetIdentifier":"h_name",
   "SQLConf": {

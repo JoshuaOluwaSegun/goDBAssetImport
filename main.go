@@ -6,14 +6,15 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"github.com/hornbill/color"
-	"github.com/hornbill/goApiLib"
-	"github.com/hornbill/pb"
 	"log"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/hornbill/color"
+	"github.com/hornbill/goApiLib"
+	"github.com/hornbill/pb"
 
 	"time"
 	//SQL Drivers
@@ -182,7 +183,7 @@ func processAssets(arrAssets []map[string]interface{}) {
 		worker.Add(1)
 		assetMap := assetRecord
 		//Get the asset ID for the current record
-		assetID := fmt.Sprintf("%v", assetMap[assetIDIdent])
+		assetID := fmt.Sprintf("%s", assetMap[assetIDIdent])
 		espXmlmc := apiLib.NewXmlmcInstance(SQLImportConf.URL)
 		espXmlmc.SetAPIKey(SQLImportConf.APIKey)
 		go func() {
@@ -249,7 +250,7 @@ func getAssetID(assetName string, espXmlmc *apiLib.XmlmcInstStruct) (bool, strin
 }
 
 // createAsset -- Creates Asset record from the passed through map data
-func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) bool {
+func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 	//Get site ID
 	siteID := ""
 	siteNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_site"])
@@ -317,6 +318,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 	strMapping := ""
 	espXmlmc.SetParam("application", appServiceManager)
 	espXmlmc.SetParam("entity", "Asset")
+	espXmlmc.SetParam("returnModifiedData", "true")
 	espXmlmc.OpenElement("primaryEntityData")
 	espXmlmc.OpenElement("record")
 	//Set Class & TypeID
@@ -342,10 +344,10 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 			espXmlmc.SetParam("h_site", siteName)
 			espXmlmc.SetParam("h_site_id", siteID)
 		}
-		if 	strAttribute != "h_site" &&
-				strAttribute != "h_used_by" &&
-				strAttribute != "h_owned_by" &&
-				strMapping != "" && getFieldValue(strAttribute, strMapping, u) != "" {
+		if strAttribute != "h_site" &&
+			strAttribute != "h_used_by" &&
+			strAttribute != "h_owned_by" &&
+			strMapping != "" && getFieldValue(strAttribute, strMapping, u) != "" {
 			espXmlmc.SetParam(strAttribute, getFieldValue(strAttribute, strMapping, u))
 		}
 	}
@@ -377,8 +379,9 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 		if xmlmcErr != nil {
 			logger(4, "Error running entityAddRecord API for createAsset:"+fmt.Sprintf("%v", xmlmcErr), false)
 			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			return
 		}
-		var xmlRespon xmlmcResponse
+		var xmlRespon xmlmcUpdateResponse
 
 		err := xml.Unmarshal([]byte(XMLCreate), &xmlRespon)
 		if err != nil {
@@ -387,7 +390,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 			mutexCounters.Unlock()
 			logger(4, "Unable to read response from Hornbill instance from entityAddRecord API for createAsset:"+fmt.Sprintf("%v", err), false)
 			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
-			return false
+			return
 		}
 		if xmlRespon.MethodResult != "ok" {
 			logger(3, "Unable to add asset: "+xmlRespon.State.ErrorRet, false)
@@ -399,7 +402,35 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 			mutexCounters.Lock()
 			counters.created++
 			mutexCounters.Unlock()
-			return true
+			assetID := xmlRespon.UpdatedCols.AssetPK
+			//Now add asset URN
+			espXmlmc.SetParam("application", "com.hornbill.servicemanager")
+			espXmlmc.SetParam("entity", "Asset")
+			espXmlmc.OpenElement("primaryEntityData")
+			espXmlmc.OpenElement("record")
+			espXmlmc.SetParam("h_pk_asset_id", assetID)
+			espXmlmc.SetParam("h_asset_urn", "urn:sys:entity:com.hornbill.servicemanager:Asset:"+assetID)
+			espXmlmc.CloseElement("record")
+			espXmlmc.CloseElement("primaryEntityData")
+			XMLSTRING = espXmlmc.GetParam()
+			XMLUpdate, xmlmcErr := espXmlmc.Invoke("data", "entityUpdateRecord")
+			if xmlmcErr != nil {
+				logger(4, "API Call failed when Updating Asset URN:"+fmt.Sprintf("%v", xmlmcErr), false)
+				return
+			}
+			var xmlRespon xmlmcResponse
+
+			err := xml.Unmarshal([]byte(XMLUpdate), &xmlRespon)
+			if err != nil {
+				logger(4, "Unable to read response from Hornbill instance when Updating Asset URN:"+fmt.Sprintf("%v", err), false)
+				return
+			}
+			if xmlRespon.MethodResult != "ok" {
+				logger(3, "Unable to update Asset URN: "+xmlRespon.State.ErrorRet, false)
+				logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+				return
+			}
+			return
 		}
 	} else {
 		//-- DEBUG XML TO LOG FILE
@@ -410,7 +441,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) boo
 		mutexCounters.Unlock()
 		espXmlmc.ClearParam()
 	}
-	return true
+	return
 }
 
 // updateAsset -- Updates Asset record from the passed through map data and asset ID
@@ -488,7 +519,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 	espXmlmc.OpenElement("primaryEntityData")
 	espXmlmc.OpenElement("record")
 	espXmlmc.SetParam("h_pk_asset_id", strAssetID)
-
+	espXmlmc.SetParam("h_asset_urn", "urn:sys:entity:com.hornbill.servicemanager:Asset:"+strAssetID)
 	//Get asset field mapping
 	for k, v := range SQLImportConf.AssetGenericFieldMapping {
 		strAttribute = fmt.Sprintf("%v", k)
@@ -505,10 +536,10 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 			espXmlmc.SetParam("h_site", siteName)
 			espXmlmc.SetParam("h_site_id", siteID)
 		}
-		if 	strAttribute != "h_site" &&
-				strAttribute != "h_used_by" &&
-				strAttribute != "h_owned_by" &&
-				strMapping != "" && getFieldValue(strAttribute, strMapping, u) != "" {
+		if strAttribute != "h_site" &&
+			strAttribute != "h_used_by" &&
+			strAttribute != "h_owned_by" &&
+			strMapping != "" && getFieldValue(strAttribute, strMapping, u) != "" {
 			espXmlmc.SetParam(strAttribute, getFieldValue(strAttribute, strMapping, u))
 		}
 	}
@@ -549,7 +580,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 			return false
 		}
 
-		if len(xmlRespon.UpdatedCols.ColList) > 0  {
+		if len(xmlRespon.UpdatedCols.ColList) > 0 {
 			boolRecordUpdated = true
 		}
 
@@ -609,7 +640,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 			return false
 		}
 
-		if len(xmlResponExt.UpdatedCols.ColList) > 0  {
+		if len(xmlResponExt.UpdatedCols.ColList) > 0 {
 			boolRecordUpdated = true
 		}
 

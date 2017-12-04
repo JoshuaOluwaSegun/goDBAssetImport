@@ -22,10 +22,10 @@
 * Extract zip into a folder you would like the application to run from e.g. `C:\asset_import\`
 * Open '''conf_sccm_assetscomputer.json''' and add in the necessary configration
 * Open Command Line Prompt as Administrator
-* Change Directory to the folder with db_asset_import.exe `C:\asset_import\`
+* Change Directory to the folder with goDBAssetImport_x64.exe `C:\asset_import\`
 * Run the command :
-For Windows 32bit Systems: db_asset_import_w32.exe -dryrun=true -file=conf_sccm_assetscomputer.json
-For Windows 64bit Systems: db_asset_import_w64.exe -dryrun=true -file=conf_sccm_assetscomputer.json
+* For Windows 32bit Systems: goDBAssetImport_x86.exe -dryrun=true -file=conf_sccm_assetscomputer.json
+* For Windows 64bit Systems: goDBAssetImport_x64.exe -dryrun=true -file=conf_sccm_assetscomputer.json
 
 # config
 
@@ -185,14 +185,14 @@ Command Line Parameters
 # Testing
 If you run the application with the argument dryrun=true then no assets will be created or updated, the XML used to create or update will be saved in the log file so you can ensure the data mappings are correct before running the import.
 
-'db_asset_import_w64.exe -dryrun=true'
+'goDBAssetImport_x64.exe -dryrun=true'
 
 # Scheduling
 
 ### Windows
-You can schedule db_asset_import.exe to run with any optional command line argument from Windows Task Scheduler.
-* Ensure the user account running the task has rights to db_asset_import.exe and the containing folder.
-* Make sure the Start In parameter contains the folder where db_asset_import.exe resides in otherwise it will not be able to pick up the correct path.
+You can schedule goDBAssetImport_x64.exe to run with any optional command line argument from Windows Task Scheduler.
+* Ensure the user account running the task has rights to goDBAssetImport_x64.exe and the containing folder.
+* Make sure the Start In parameter contains the folder where goDBAssetImport_x64.exe resides in otherwise it will not be able to pick up the correct path.
 
 # Logging
 All Logging output is saved in the log directory in the same directory as the executable the file name contains the date and time the import was run 'Asset_Import_2015-11-06T14-26-13Z.log'

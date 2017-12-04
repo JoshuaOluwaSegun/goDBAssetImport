@@ -4,12 +4,10 @@ import (
 	"encoding/xml"
 	"sync"
 	"time"
-
-	"github.com/hornbill/goApiLib"
 )
 
 //----- Constants -----
-const version = "1.3.2"
+const version = "1.4.0"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----
@@ -33,15 +31,15 @@ var (
 	BaseSQLQuery        string
 	StrAssetType        string
 	StrSQLAppend        string
-	espXmlmc            *apiLib.XmlmcInstStruct
-	mutex               = &sync.Mutex{}
-	mutexBar            = &sync.Mutex{}
-	mutexCounters       = &sync.Mutex{}
-	mutexCustomers      = &sync.Mutex{}
-	mutexSite           = &sync.Mutex{}
-	worker              sync.WaitGroup
-	maxGoroutines       = 1
-	logFilePart         = 0
+	//espXmlmc            *apiLib.XmlmcInstStruct
+	mutex          = &sync.Mutex{}
+	mutexBar       = &sync.Mutex{}
+	mutexCounters  = &sync.Mutex{}
+	mutexCustomers = &sync.Mutex{}
+	mutexSite      = &sync.Mutex{}
+	worker         sync.WaitGroup
+	maxGoroutines  = 1
+	logFilePart    = 0
 )
 
 //----- Structures -----
@@ -105,6 +103,7 @@ type xmlmcUpdateResponse struct {
 	State        stateStruct `xml:"state"`
 }
 type updatedCols struct {
+	AssetPK string       `xml:"h_pk_asset_id"`
 	ColList []updatedCol `xml:",any"`
 }
 
