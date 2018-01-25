@@ -295,7 +295,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 	usedByName := ""
 	usedByURN := ""
 	usedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_used_by"])
-	usedByID := getFieldValue("h_owned_by", usedByMapping, u)
+	usedByID := getFieldValue("h_used_by", usedByMapping, u)
 	if usedByID != "" {
 		usedByIsInCache, usedByNameCache := customerInCache(usedByID)
 		//-- Check if we have cached the customer already

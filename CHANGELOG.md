@@ -1,3 +1,9 @@
+## 1.4.1
+
+Defect fix:
+
+  - Fixed issue with Used By not being populated with a valid URN
+
 ## 1.4.0 (December 4th, 2017)
 
 Features:
