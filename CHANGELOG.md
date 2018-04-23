@@ -1,4 +1,10 @@
-## 1.4.1
+## 1.4.2 (April 23rd, 2018)
+
+Feature:
+
+  - Added account verification and URN building when value supplied to h_last_logged_on_user column
+
+## 1.4.1 (January 25th, 2018)
 
 Defect fix:
 

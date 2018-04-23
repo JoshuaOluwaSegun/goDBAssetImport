@@ -174,6 +174,8 @@ Example JSON File:
 
 #### AssetTypeFieldMapping
 * Maps data in to the type-specific Asset record, so the same rules as AssetGenericFieldMapping
+* For the computer asset class:
+    * "h_last_logged_on_user":"[UserName]" - when a valid Hornbill User ID (for a Full or Basic User) is passed to this field, the user is verified on your Hornbill instance, and the tool will complete the h_last_logged_on_user column with an appropriate URN value for the user.
 
 # Execute
 Command Line Parameters
