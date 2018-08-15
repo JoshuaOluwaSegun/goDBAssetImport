@@ -9,7 +9,9 @@ import (
 
 //buildConnectionString -- Build the connection string for the SQL driver
 func buildConnectionString() string {
-	if SQLImportConf.SQLConf.Server == "" || SQLImportConf.SQLConf.Database == "" || SQLImportConf.SQLConf.UserName == "" || SQLImportConf.SQLConf.Password == "" {
+	if SQLImportConf.SQLConf.Server == "" ||
+		SQLImportConf.SQLConf.Database == "" ||
+		SQLImportConf.SQLConf.Authentication == "SQL" && (SQLImportConf.SQLConf.UserName == "" || SQLImportConf.SQLConf.Password == "") {
 		//Conf not set - log error and return empty string
 		logger(4, "Database configuration not set.", true)
 		return ""
@@ -63,7 +65,7 @@ func buildConnectionString() string {
 //-- Builds map of assets, returns true if successful
 func queryDatabase(sqlAppend, assetTypeName string) (bool, []map[string]interface{}) {
 	//Clear existing Asset Map down
-	ArrAssetMaps := make([]map[string]interface{}, 0)
+	var ArrAssetMaps []map[string]interface{}
 	connString := buildConnectionString()
 	if connString == "" {
 		return false, ArrAssetMaps

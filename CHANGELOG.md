@@ -1,3 +1,10 @@
+## 1.5.0 (August 15th, 2018)
+
+Features:
+
+  - Added support for searching other entity columns for existing asset records to prevent asset duplication
+  - Removed mandatory status of username and password columns when authentication method is Windows
+
 ## 1.4.2 (April 23rd, 2018)
 
 Feature:

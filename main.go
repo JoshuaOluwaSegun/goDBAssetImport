@@ -81,16 +81,17 @@ func main() {
 
 	//Get asset types, process accordingly
 	BaseSQLQuery = SQLImportConf.SQLConf.Query
-	for k, v := range SQLImportConf.AssetTypes {
-		StrAssetType = fmt.Sprintf("%v", k)
-		StrSQLAppend = fmt.Sprintf("%v", v)
+	for _, v := range SQLImportConf.AssetTypes {
+		StrAssetType = fmt.Sprintf("%v", v.AssetType)
+		StrSQLAppend = fmt.Sprintf("%v", v.Query)
+
 		//Set Asset Class & Type vars from instance
 		AssetClass, AssetTypeID = getAssetClass(StrAssetType)
 		//-- Query Database
 		var boolSQLAssets, arrAssets = queryDatabase(StrSQLAppend, StrAssetType)
 		if boolSQLAssets {
 			//Process records returned by query
-			processAssets(arrAssets)
+			processAssets(arrAssets, v.AssetIdentifier)
 		}
 	}
 
@@ -143,11 +144,13 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 	espXmlmc.SetParam("application", appServiceManager)
 	espXmlmc.SetParam("entity", "AssetsTypes")
 	espXmlmc.OpenElement("searchFilter")
-	espXmlmc.SetParam("h_name", confAssetType)
+	espXmlmc.SetParam("column", "h_name")
+	espXmlmc.SetParam("value", confAssetType)
+	espXmlmc.SetParam("matchType", "exact")
 	espXmlmc.CloseElement("searchFilter")
 	espXmlmc.SetParam("maxResults", "1")
 	var XMLSTRING = espXmlmc.GetParam()
-	XMLGetMeta, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords")
+	XMLGetMeta, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords2")
 	if xmlmcErr != nil {
 		logger(4, "API Call failed when retrieving Asset Class:"+fmt.Sprintf("%v", xmlmcErr), false)
 		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
@@ -168,12 +171,12 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 //processAssets -- Processes Assets from Asset Map
 //--If asset already exists on the instance, update
 //--If asset doesn't exist, create
-func processAssets(arrAssets []map[string]interface{}) {
+func processAssets(arrAssets []map[string]interface{}, assetIdentifier assetIdentifierStruct) {
 	bar := pb.StartNew(len(arrAssets))
 	logger(1, "Processing Assets", false)
 
 	//Get the identity of the AssetID field from the config
-	assetIDIdent := fmt.Sprintf("%v", SQLImportConf.SQLConf.AssetID)
+	assetIDIdent := fmt.Sprintf("%v", assetIdentifier.DBColumn)
 
 	//-- Loop each asset
 	maxGoroutinesGuard := make(chan struct{}, maxGoroutines)
@@ -194,7 +197,7 @@ func processAssets(arrAssets []map[string]interface{}) {
 			mutexBar.Unlock()
 
 			var boolUpdate = false
-			boolUpdate, assetIDInstance := getAssetID(assetID, espXmlmc)
+			boolUpdate, assetIDInstance := getAssetID(assetID, assetIdentifier, espXmlmc)
 			//-- Update or Create Asset
 			if boolUpdate {
 				logger(1, "Update Asset: "+assetID, false)
@@ -213,17 +216,19 @@ func processAssets(arrAssets []map[string]interface{}) {
 //getAssetID -- Check if asset is on the instance
 //-- Returns true, assetid if so
 //-- Returns false, "" if not
-func getAssetID(assetName string, espXmlmc *apiLib.XmlmcInstStruct) (bool, string) {
+func getAssetID(assetID string, assetIdentifier assetIdentifierStruct, espXmlmc *apiLib.XmlmcInstStruct) (bool, string) {
 	boolReturn := false
 	returnAssetID := ""
 	espXmlmc.SetParam("application", appServiceManager)
-	espXmlmc.SetParam("entity", "Asset")
+	espXmlmc.SetParam("entity", fmt.Sprintf("%v", assetIdentifier.Entity))
 	espXmlmc.OpenElement("searchFilter")
-	espXmlmc.SetParam("h_name", assetName)
+	espXmlmc.SetParam("column", fmt.Sprintf("%v", assetIdentifier.EntityColumn))
+	espXmlmc.SetParam("value", assetID)
+	espXmlmc.SetParam("matchType", "exact")
 	espXmlmc.CloseElement("searchFilter")
 	espXmlmc.SetParam("maxResults", "1")
 	var XMLSTRING = espXmlmc.GetParam()
-	XMLAssetSearch, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords")
+	XMLAssetSearch, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords2")
 	if xmlmcErr != nil {
 		logger(4, "API Call failed when searching instance for existing Asset:"+fmt.Sprintf("%v", xmlmcErr), false)
 		logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
