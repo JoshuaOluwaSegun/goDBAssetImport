@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.6.0 (December 10th, 20018)
+## 1.6.0 (December 10th, 2018)
 
 Features:
 
