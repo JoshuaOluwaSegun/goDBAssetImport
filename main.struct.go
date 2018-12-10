@@ -7,39 +7,38 @@ import (
 )
 
 //----- Constants -----
-const version = "1.5.0"
+const version = "1.6.0"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----
 var (
-	maxLogFileSize      int64
-	SQLImportConf       sqlImportConfStruct
-	XmlmcInstanceConfig xmlmcConfig
-	Sites               []siteListStruct
-	counters            counterTypeStruct
-	configFileName      string
-	configMaxRoutines   string
-	configZone          string
-	configDryRun        bool
-	Customers           []customerListStruct
-	TimeNow             string
-	APITimeNow          string
-	startTime           time.Time
-	endTime             time.Duration
-	AssetClass          string
-	AssetTypeID         int
-	BaseSQLQuery        string
-	StrAssetType        string
-	StrSQLAppend        string
-	//espXmlmc            *apiLib.XmlmcInstStruct
-	mutex          = &sync.Mutex{}
-	mutexBar       = &sync.Mutex{}
-	mutexCounters  = &sync.Mutex{}
-	mutexCustomers = &sync.Mutex{}
-	mutexSite      = &sync.Mutex{}
-	worker         sync.WaitGroup
-	maxGoroutines  = 1
-	logFilePart    = 0
+	maxLogFileSize    int64
+	SQLImportConf     sqlImportConfStruct
+	Sites             []siteListStruct
+	Groups            []groupListStruct
+	counters          counterTypeStruct
+	configFileName    string
+	configMaxRoutines string
+	configDryRun      bool
+	Customers         []customerListStruct
+	TimeNow           string
+	APITimeNow        string
+	startTime         time.Time
+	endTime           time.Duration
+	AssetClass        string
+	AssetTypeID       int
+	BaseSQLQuery      string
+	StrAssetType      string
+	StrSQLAppend      string
+	mutex             = &sync.Mutex{}
+	mutexBar          = &sync.Mutex{}
+	mutexCounters     = &sync.Mutex{}
+	mutexCustomers    = &sync.Mutex{}
+	mutexGroup        = &sync.Mutex{}
+	mutexSite         = &sync.Mutex{}
+	worker            sync.WaitGroup
+	maxGoroutines     = 1
+	logFilePart       = 0
 )
 
 //----- Structures -----
@@ -47,10 +46,10 @@ type siteListStruct struct {
 	SiteName string
 	SiteID   int
 }
-type xmlmcConfig struct {
-	instance string
-	zone     string
-	url      string
+type groupListStruct struct {
+	GroupName string
+	GroupType int
+	GroupID   string
 }
 type counterTypeStruct struct {
 	updated        uint16
@@ -61,7 +60,6 @@ type counterTypeStruct struct {
 type sqlImportConfStruct struct {
 	APIKey                   string
 	InstanceID               string
-	URL                      string
 	Entity                   string
 	LogSizeBytes             int64
 	SQLConf                  sqlConfStruct
@@ -94,14 +92,7 @@ type sqlConfStruct struct {
 	Encrypt        bool
 	AssetID        string
 }
-type siteLookupStruct struct {
-	Enabled  bool
-	QueryCol string
-}
-type typeLookupStruct struct {
-	Enabled   bool
-	Attribute string
-}
+
 type xmlmcResponse struct {
 	MethodResult string       `xml:"status,attr"`
 	Params       paramsStruct `xml:"params"`
@@ -139,6 +130,13 @@ type siteObjectStruct struct {
 	SiteID      int    `xml:"h_id"`
 	SiteName    string `xml:"h_site_name"`
 	SiteCountry string `xml:"h_country"`
+}
+
+//Group Structs
+type xmlmcGroupListResponse struct {
+	MethodResult string      `xml:"status,attr"`
+	GroupID      string      `xml:"params>rowData>row>h_id"`
+	State        stateStruct `xml:"state"`
 }
 
 //----- Customer Structs

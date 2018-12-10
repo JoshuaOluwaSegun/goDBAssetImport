@@ -29,31 +29,27 @@ func buildConnectionString() string {
 			connectString = connectString + ";password=" + SQLImportConf.SQLConf.Password
 		}
 
-		if SQLImportConf.SQLConf.Encrypt == false {
+		if !SQLImportConf.SQLConf.Encrypt {
 			connectString = connectString + ";encrypt=disable"
 		}
 		if SQLImportConf.SQLConf.Port != 0 {
-			var dbPortSetting string
-			dbPortSetting = strconv.Itoa(SQLImportConf.SQLConf.Port)
+			dbPortSetting := strconv.Itoa(SQLImportConf.SQLConf.Port)
 			connectString = connectString + ";port=" + dbPortSetting
 		}
 	case "mysql":
 		connectString = SQLImportConf.SQLConf.UserName + ":" + SQLImportConf.SQLConf.Password
 		connectString = connectString + "@tcp(" + SQLImportConf.SQLConf.Server + ":"
 		if SQLImportConf.SQLConf.Port != 0 {
-			var dbPortSetting string
-			dbPortSetting = strconv.Itoa(SQLImportConf.SQLConf.Port)
+			dbPortSetting := strconv.Itoa(SQLImportConf.SQLConf.Port)
 			connectString = connectString + dbPortSetting
 		} else {
 			connectString = connectString + "3306"
 		}
 		connectString = connectString + ")/" + SQLImportConf.SQLConf.Database
 	case "mysql320":
-		var dbPortSetting string
+		dbPortSetting := "3306"
 		if SQLImportConf.SQLConf.Port != 0 {
 			dbPortSetting = strconv.Itoa(SQLImportConf.SQLConf.Port)
-		} else {
-			dbPortSetting = "3306"
 		}
 		connectString = "tcp:" + SQLImportConf.SQLConf.Server + ":" + dbPortSetting
 		connectString = connectString + "*" + SQLImportConf.SQLConf.Database + "/" + SQLImportConf.SQLConf.UserName + "/" + SQLImportConf.SQLConf.Password
@@ -68,6 +64,7 @@ func queryDatabase(sqlAppend, assetTypeName string) (bool, []map[string]interfac
 	var ArrAssetMaps []map[string]interface{}
 	connString := buildConnectionString()
 	if connString == "" {
+		logger(4, " [DATABASE] Database Connection String Empty. Check the SQLConf section of your configuration.", true)
 		return false, ArrAssetMaps
 	}
 	//Connect to the JSON specified DB
@@ -94,16 +91,23 @@ func queryDatabase(sqlAppend, assetTypeName string) (bool, []map[string]interfac
 		logger(4, " [DATABASE] Database Query Error: "+fmt.Sprintf("%v", err), true)
 		return false, ArrAssetMaps
 	}
+	defer rows.Close()
 
 	//Build map full of assets
 	intAssetCount := 0
+	intAssetSuccess := 0
 	for rows.Next() {
 		intAssetCount++
 		results := make(map[string]interface{})
 		err = rows.MapScan(results)
-		//Stick marshalled data map in to parent slice
-		ArrAssetMaps = append(ArrAssetMaps, results)
+		if err != nil {
+			logger(4, " [DATABASE] Data Unmarshal Error: "+fmt.Sprintf("%v", err), true)
+		} else {
+			//Stick marshalled data map in to parent slice
+			ArrAssetMaps = append(ArrAssetMaps, results)
+			intAssetSuccess++
+		}
 	}
-	defer rows.Close()
+	logger(3, "[DATABASE] "+strconv.Itoa(intAssetSuccess)+" of "+strconv.Itoa(intAssetCount)+" returned assets successfully retrieved ready for processing.", true)
 	return true, ArrAssetMaps
 }
