@@ -1,10 +1,16 @@
 # CHANGELOG
 
+## 1.7.0 (December 13th, 2018)
+
+Features:
+
+- Added support to use ODBC SQL Server driver as a data source
+
 ## 1.6.0 (December 10th, 2018)
 
 Features:
 
-- Added support for programatically populating a company name against an asset. The tool will perform a Company look-up if a company name (in the h_company__name mapping) has been provided, before populating the company name and ID fields against the new or updated asset
+- Added support for populating the company fields against an asset. The tool will perform a Company look-up if a company name (in the h_company__name mapping) has been provided, before populating the company name and ID fields against the new or updated asset
 - Additional logging
 - Removed need to provide zone CLI parameter
 

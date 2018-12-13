@@ -18,6 +18,7 @@ import (
 
 	"time"
 	//SQL Drivers
+	_ "github.com/alexbrainman/odbc" //ODBC Driver
 	_ "github.com/hornbill/go-mssqldb"
 	_ "github.com/hornbill/mysql"
 	_ "github.com/hornbill/mysql320" //MySQL v3.2.0 to v5 driver - Provides SWSQL (MySQL 4.0.16) support

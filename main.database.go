@@ -4,19 +4,23 @@ import (
 	"fmt"
 	"strconv"
 	//SQL Package
-	"github.com/hornbill/sqlx"
+	"github.com/jmoiron/sqlx"
 )
 
 //buildConnectionString -- Build the connection string for the SQL driver
 func buildConnectionString() string {
-	if SQLImportConf.SQLConf.Server == "" ||
-		SQLImportConf.SQLConf.Database == "" ||
+	if SQLImportConf.SQLConf.Database == "" ||
 		SQLImportConf.SQLConf.Authentication == "SQL" && (SQLImportConf.SQLConf.UserName == "" || SQLImportConf.SQLConf.Password == "") {
 		//Conf not set - log error and return empty string
 		logger(4, "Database configuration not set.", true)
 		return ""
 	}
-	logger(1, "Connecting to Database Server: "+SQLImportConf.SQLConf.Server, true)
+	if SQLImportConf.SQLConf.Driver != "odbc" {
+		logger(1, "Connecting to Database Server: "+SQLImportConf.SQLConf.Server, true)
+	} else {
+		logger(1, "Connecting to ODBC Data Source: "+SQLImportConf.SQLConf.Database, true)
+	}
+
 	connectString := ""
 	switch SQLImportConf.SQLConf.Driver {
 	case "mssql":
@@ -53,6 +57,8 @@ func buildConnectionString() string {
 		}
 		connectString = "tcp:" + SQLImportConf.SQLConf.Server + ":" + dbPortSetting
 		connectString = connectString + "*" + SQLImportConf.SQLConf.Database + "/" + SQLImportConf.SQLConf.UserName + "/" + SQLImportConf.SQLConf.Password
+	case "odbc":
+		connectString = "DSN=" + SQLImportConf.SQLConf.Database + ";UID=" + SQLImportConf.SQLConf.UserName + ";PWD=" + SQLImportConf.SQLConf.Password
 	}
 	return connectString
 }

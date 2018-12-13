@@ -164,9 +164,15 @@ Example JSON File:
   - mysql = MySQL Server 4.1+, MariaDB
   - mysql320 = MySQL Server v3.2.0 to v4.0
   - swsql = Supportworks SQL (Core Services v3.x)
+  - odbc = ODBC Data Source using SQL Server driver
+    - When using ODBC as a data source, the `Database`, `UserName`, `Password` and `Query` parameters should be populated accordingly:
+      - Database - this should be populated with the  name of the ODBC connection on the PC that is running the tool
+      - UserName - this should be the SQL authentication Username to connect to the Database
+      - Password - this should be the password for the above username
+      - Query - this should be the SQL query to retrieve the asset records
 - "Server" The address of the SQL server
 - "Database" The name of the Database to connect to
-- Authentication - The tupe of authentication to use to connect to the SQL server. Can be either:
+- "Authentication" - The tupe of authentication to use to connect to the SQL server. Can be either:
   - Windows - Windows Account authentication, uses the logged-in Windows account to authenticate
   - SQL - uses SQL Server authentication, and requires the Username and Password parameters (below) to be populated
 - "UserName" The username for the SQL database - only used when Authentication is set to SQL: for Windows authentication this field can be left as an empty string
