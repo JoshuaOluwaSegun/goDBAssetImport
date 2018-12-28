@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.7.1 (December 28th, 2018)
+
+Fixes:
+
+  - last_logged_on_user to URN conversion
+  
 ## 1.7.0 (December 13th, 2018)
 
 Features:
