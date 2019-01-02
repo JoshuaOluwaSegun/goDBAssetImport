@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.7.1 (December 28th, 2018)
+
+Defect fix:
+
+- Last Logged On User to URN conversion when updating existing assets
+  
 ## 1.7.0 (December 13th, 2018)
 
 Features:
