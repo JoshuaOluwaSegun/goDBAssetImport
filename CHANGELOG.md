@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 1.7.2 (January 4th, 2019)
+
+Changes:
+
+- Record data not correctly mapped when using certain ODBC drivers
+- Code tweaks for minor performance improvements
+
 ## 1.7.1 (December 28th, 2018)
 
 Defect fix:

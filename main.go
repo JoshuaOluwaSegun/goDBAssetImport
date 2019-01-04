@@ -43,7 +43,7 @@ func main() {
 
 	//-- Output
 	logger(1, "---- XMLMC Database Asset Import Utility V"+version+" ----", true)
-	logger(1, "Flag - Config File "+fmt.Sprintf("%s", configFileName), true)
+	logger(1, "Flag - Config File "+configFileName, true)
 	logger(1, "Flag - Dry Run "+fmt.Sprintf("%v", configDryRun), true)
 
 	//Check maxGoroutines for valid value
@@ -95,7 +95,7 @@ func main() {
 	logger(1, "Created: "+fmt.Sprintf("%d", counters.created), true)
 	logger(1, "Created Skipped: "+fmt.Sprintf("%d", counters.createskipped), true)
 	//-- Show Time Takens
-	endTime = time.Now().Sub(startTime)
+	endTime = time.Since(startTime)
 	logger(1, "Time Taken: "+fmt.Sprintf("%v", endTime), true)
 	logger(1, "---- XMLMC Database Asset Import Complete ---- ", true)
 }
@@ -147,14 +147,14 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 	XMLGetMeta, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords2")
 	if xmlmcErr != nil {
 		logger(4, "API Call failed when retrieving Asset Class:"+fmt.Sprintf("%v", xmlmcErr), false)
-		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API XML: "+XMLSTRING, false)
 	}
 
 	var xmlRespon xmlmcTypeListResponse
 	err := xml.Unmarshal([]byte(XMLGetMeta), &xmlRespon)
 	if err != nil {
 		logger(4, "Could not get Asset Class and Type. Please check AssetType within your configuration file:"+fmt.Sprintf("%v", err), true)
-		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API XML: "+XMLSTRING, false)
 	} else {
 		assetClass = xmlRespon.Params.RowData.Row.TypeClass
 		assetType = xmlRespon.Params.RowData.Row.TypeID
@@ -225,17 +225,17 @@ func getAssetID(assetID string, assetIdentifier assetIdentifierStruct, espXmlmc 
 	XMLAssetSearch, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords2")
 	if xmlmcErr != nil {
 		logger(4, "API Call failed when searching instance for existing Asset:"+fmt.Sprintf("%v", xmlmcErr), false)
-		logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API Call XML: "+XMLSTRING, false)
 	} else {
 		var xmlRespon xmlmcAssetResponse
 		err := xml.Unmarshal([]byte(XMLAssetSearch), &xmlRespon)
 		if err != nil {
 			logger(3, "Unable to Search for Asset: "+fmt.Sprintf("%v", err), true)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 		} else {
 			if xmlRespon.MethodResult != "ok" {
 				logger(3, "Unable to Search for Asset: "+xmlRespon.State.ErrorRet, true)
-				logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+				logger(1, "API Call XML: "+XMLSTRING, false)
 			} else {
 				returnAssetID = xmlRespon.Params.RowData.Row.AssetID
 				//-- Check Response
@@ -424,7 +424,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 		XMLCreate, xmlmcErr := espXmlmc.Invoke("data", "entityAddRecord")
 		if xmlmcErr != nil {
 			logger(4, "Error running entityAddRecord API for createAsset:"+fmt.Sprintf("%v", xmlmcErr), false)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 			return
 		}
 		var xmlRespon xmlmcUpdateResponse
@@ -435,12 +435,12 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 			counters.createskipped++
 			mutexCounters.Unlock()
 			logger(4, "Unable to read response from Hornbill instance from entityAddRecord API for createAsset:"+fmt.Sprintf("%v", err), false)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 			return
 		}
 		if xmlRespon.MethodResult != "ok" {
 			logger(3, "Unable to add asset: "+xmlRespon.State.ErrorRet, false)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
 			counters.createskipped++
 			mutexCounters.Unlock()
@@ -473,7 +473,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 			}
 			if xmlRespon.MethodResult != "ok" {
 				logger(3, "Unable to update Asset URN: "+xmlRespon.State.ErrorRet, false)
-				logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+				logger(1, "API Call XML: "+XMLSTRING, false)
 				return
 			}
 			return
@@ -481,7 +481,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 	} else {
 		//-- DEBUG XML TO LOG FILE
 		var XMLSTRING = espXmlmc.GetParam()
-		logger(1, "Asset Create XML "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "Asset Create XML "+XMLSTRING, false)
 		mutexCounters.Lock()
 		counters.createskipped++
 		mutexCounters.Unlock()
@@ -639,7 +639,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 		XMLUpdate, xmlmcErr := espXmlmc.Invoke("data", "entityUpdateRecord")
 		if xmlmcErr != nil {
 			logger(4, "API Call failed when Updating Asset:"+fmt.Sprintf("%v", xmlmcErr), false)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
 			counters.updatedSkipped++
 			mutexCounters.Unlock()
@@ -651,7 +651,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 		err := xml.Unmarshal([]byte(XMLUpdate), &xmlRespon)
 		if err != nil {
 			logger(4, "Unable to read response from Hornbill instance when Updating Asset:"+fmt.Sprintf("%v", err), false)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
 			counters.updatedSkipped++
 			mutexCounters.Unlock()
@@ -659,7 +659,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 		}
 		if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" {
 			logger(3, "Unable to Update Asset: "+xmlRespon.State.ErrorRet, false)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
 			counters.updatedSkipped++
 			mutexCounters.Unlock()
@@ -703,7 +703,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 		XMLUpdateExt, xmlmcErrExt := espXmlmc.Invoke("data", "entityUpdateRecord")
 		if xmlmcErrExt != nil {
 			logger(4, "API Call failed when Updating Asset Extended Details:"+fmt.Sprintf("%v", xmlmcErrExt), false)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
 			counters.updatedSkipped++
 			mutexCounters.Unlock()
@@ -714,7 +714,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 		err = xml.Unmarshal([]byte(XMLUpdateExt), &xmlResponExt)
 		if err != nil {
 			logger(4, "Unable to read response from Hornbill instance when Updating Asset Extended Details:"+fmt.Sprintf("%v", err), false)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
 			counters.updatedSkipped++
 			mutexCounters.Unlock()
@@ -722,7 +722,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 		}
 		if xmlResponExt.MethodResult != "ok" && xmlResponExt.State.ErrorRet != "There are no values to update" {
 			logger(3, "Unable to Update Asset Extended Details: "+xmlResponExt.State.ErrorRet, false)
-			logger(1, "API Call XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
 			counters.updatedSkipped++
 			mutexCounters.Unlock()
@@ -753,17 +753,17 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 			XMLUpdate, xmlmcErr := espXmlmc.Invoke("data", "entityUpdateRecord")
 			if xmlmcErr != nil {
 				logger(4, "API Call failed when setting Last Updated values:"+fmt.Sprintf("%v", xmlmcErr), false)
-				logger(1, "Asset Last Updated XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+				logger(1, "Asset Last Updated XML: "+XMLSTRING, false)
 			}
 			var xmlRespon xmlmcResponse
 			err := xml.Unmarshal([]byte(XMLUpdate), &xmlRespon)
 			if err != nil {
 				logger(4, "Unable to read response from Hornbill instance when setting Last Updated values:"+fmt.Sprintf("%v", err), false)
-				logger(1, "Asset Last Updated XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+				logger(1, "Asset Last Updated XML: "+XMLSTRING, false)
 			}
 			if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" {
 				logger(3, "Unable to set Last Updated details for asset: "+xmlRespon.State.ErrorRet, false)
-				logger(1, "Asset Last Updated XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+				logger(1, "Asset Last Updated XML: "+XMLSTRING, false)
 			}
 			mutexCounters.Lock()
 			counters.updated++
@@ -775,7 +775,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 		mutexCounters.Lock()
 		counters.updatedSkipped++
 		mutexCounters.Unlock()
-		logger(1, "Asset Update XML "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "Asset Update XML "+XMLSTRING, false)
 		espXmlmc.ClearParam()
 	}
 	return true
@@ -800,9 +800,12 @@ func getFieldValue(k string, v string, u map[string]interface{}) string {
 		if valFieldMap == "HBAssetType" {
 			valFieldMap = StrAssetType
 		} else {
-			if SQLImportConf.SQLConf.Driver == "mysql320" {
-				valFieldMap = fmt.Sprintf("%s", u[valFieldMap])
-			} else {
+			interfaceContent := u[valFieldMap]
+			switch v := interfaceContent.(type) {
+			case []uint8:
+				valFieldMap = string(v)
+				//}
+			default:
 				valFieldMap = fmt.Sprintf("%v", u[valFieldMap])
 			}
 		}
@@ -814,7 +817,7 @@ func getFieldValue(k string, v string, u map[string]interface{}) string {
 				valFieldMap = ""
 			} else {
 				//20160215 Check for NULL (<nil>) field value
-				//Cannot do this when Scanning SQL data, as we don't now the returned cols - we're using MapScan
+				//Cannot do this when Scanning SQL data, as we don't know the returned cols - we're using MapScan
 				if valFieldMap == "<nil>" {
 					valFieldMap = ""
 				}
@@ -822,6 +825,7 @@ func getFieldValue(k string, v string, u map[string]interface{}) string {
 		}
 		fieldMap = strings.Replace(fieldMap, val, valFieldMap, 1)
 	}
+
 	return fieldMap
 }
 

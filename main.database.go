@@ -75,15 +75,15 @@ func queryDatabase(sqlAppend, assetTypeName string) (bool, []map[string]interfac
 	}
 	//Connect to the JSON specified DB
 	db, err := sqlx.Open(SQLImportConf.SQLConf.Driver, connString)
-	defer db.Close()
 	if err != nil {
 		logger(4, " [DATABASE] Database Connection Error: "+fmt.Sprintf("%v", err), true)
 		return false, ArrAssetMaps
 	}
+	defer db.Close()
 	//Check connection is open
 	err = db.Ping()
 	if err != nil {
-		logger(4, " [DATABASE] [PING] Database Connection Error: "+fmt.Sprintf("%v", err), true)
+		logger(4, " [DATABASE] [PING] Database Ping Error: "+fmt.Sprintf("%v", err), true)
 		return false, ArrAssetMaps
 	}
 	logger(3, "[DATABASE] Connection Successful", true)
