@@ -191,14 +191,18 @@ func processAssets(arrAssets []map[string]interface{}, assetIdentifier assetIden
 			mutexBar.Unlock()
 
 			var boolUpdate = false
-			boolUpdate, assetIDInstance := getAssetID(assetID, assetIdentifier, espXmlmc)
+			boolUpdate, searchSuccess, assetIDInstance := getAssetID(assetID, assetIdentifier, espXmlmc)
 			//-- Update or Create Asset
-			if boolUpdate {
-				logger(1, "Update Asset: "+assetID, false)
-				updateAsset(assetMap, assetIDInstance, espXmlmc)
+			if searchSuccess {
+				if boolUpdate {
+					logger(1, "Update Asset: "+assetID, false)
+					updateAsset(assetMap, assetIDInstance, espXmlmc)
+				} else {
+					logger(1, "Create Asset: "+assetID, false)
+					createAsset(assetMap, espXmlmc)
+				}
 			} else {
-				logger(1, "Create Asset: "+assetID, false)
-				createAsset(assetMap, espXmlmc)
+				logger(4, "Asset search API call failed for asset with Unique ID: "+assetID, true)
 			}
 			<-maxGoroutinesGuard
 		}()
@@ -210,8 +214,9 @@ func processAssets(arrAssets []map[string]interface{}, assetIdentifier assetIden
 //getAssetID -- Check if asset is on the instance
 //-- Returns true, assetid if so
 //-- Returns false, "" if not
-func getAssetID(assetID string, assetIdentifier assetIdentifierStruct, espXmlmc *apiLib.XmlmcInstStruct) (bool, string) {
+func getAssetID(assetID string, assetIdentifier assetIdentifierStruct, espXmlmc *apiLib.XmlmcInstStruct) (bool, bool, string) {
 	boolReturn := false
+	boolSuccess := false
 	returnAssetID := ""
 	espXmlmc.SetParam("application", appServiceManager)
 	espXmlmc.SetParam("entity", fmt.Sprintf("%v", assetIdentifier.Entity))
@@ -237,6 +242,7 @@ func getAssetID(assetID string, assetIdentifier assetIdentifierStruct, espXmlmc 
 				logger(3, "Unable to Search for Asset: "+xmlRespon.State.ErrorRet, true)
 				logger(1, "API Call XML: "+XMLSTRING, false)
 			} else {
+				boolSuccess = true
 				returnAssetID = xmlRespon.Params.RowData.Row.AssetID
 				//-- Check Response
 				if returnAssetID != "" {
@@ -245,7 +251,7 @@ func getAssetID(assetID string, assetIdentifier assetIdentifierStruct, espXmlmc 
 			}
 		}
 	}
-	return boolReturn, returnAssetID
+	return boolReturn, boolSuccess, returnAssetID
 }
 
 // createAsset -- Creates Asset record from the passed through map data

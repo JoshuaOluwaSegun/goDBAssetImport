@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.7.3 (February 15th, 2019)
+
+Changes:
+
+- Extra gating to prevent duplicate records being created when there's a failure of the API call that checks if the asset already exists on the Hornbill instance
+
 ## 1.7.2 (January 4th, 2019)
 
 Changes:
