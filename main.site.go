@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	"github.com/hornbill/goApiLib"
 	"strings"
+
+	"github.com/hornbill/goApiLib"
 )
 
 // siteInCache -- Function to check if passed-thorugh site name has been cached
@@ -40,18 +41,18 @@ func searchSite(siteName string, espXmlmc *apiLib.XmlmcInstStruct) (bool, int) {
 	XMLSiteSearch, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords")
 	if xmlmcErr != nil {
 		logger(4, "API Call failed when Searching Site:"+fmt.Sprintf("%v", xmlmcErr), false)
-		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API XML: "+XMLSTRING, false)
 	}
 	var xmlRespon xmlmcSiteListResponse
 
 	err := xml.Unmarshal([]byte(XMLSiteSearch), &xmlRespon)
 	if err != nil {
 		logger(3, "Unable to Search for Site: "+fmt.Sprintf("%v", err), true)
-		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API XML: "+XMLSTRING, false)
 	} else {
 		if xmlRespon.MethodResult != "ok" {
 			logger(3, "Unable to Search for Site: "+xmlRespon.State.ErrorRet, true)
-			logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API XML: "+XMLSTRING, false)
 		} else {
 			//-- Check Response
 			if xmlRespon.Params.RowData.Row.SiteName != "" {

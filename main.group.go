@@ -41,7 +41,7 @@ func searchGroup(groupName string, groupType int, espXmlmc *apiLib.XmlmcInstStru
 	XMLGroupSearch, xmlmcErr := espXmlmc.Invoke("data", "queryExec")
 	if xmlmcErr != nil {
 		logger(4, "API Call failed when Searching Group:"+fmt.Sprintf("%v", xmlmcErr), false)
-		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API XML: "+XMLSTRING, false)
 		return boolReturn, groupID
 	}
 	var xmlRespon xmlmcGroupListResponse
@@ -49,12 +49,12 @@ func searchGroup(groupName string, groupType int, espXmlmc *apiLib.XmlmcInstStru
 	err := xml.Unmarshal([]byte(XMLGroupSearch), &xmlRespon)
 	if err != nil {
 		logger(3, "Unable to Search for Group: "+fmt.Sprintf("%v", err), true)
-		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API XML: "+XMLSTRING, false)
 		return boolReturn, groupID
 	}
 	if xmlRespon.MethodResult != "ok" {
 		logger(3, "Unable to Search for Group: "+xmlRespon.State.ErrorRet, true)
-		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API XML: "+XMLSTRING, false)
 		return boolReturn, groupID
 	}
 	//-- Check Response

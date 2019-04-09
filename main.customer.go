@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
+
 	"github.com/hornbill/goApiLib"
 )
 
@@ -34,19 +35,19 @@ func searchCustomer(custID string, espXmlmc *apiLib.XmlmcInstStruct) (bool, stri
 	XMLCustomerSearch, xmlmcErr := espXmlmc.Invoke("apps/"+appServiceManager, "shrGetCustomerDetails")
 	if xmlmcErr != nil {
 		logger(4, "Unable to Search for Customer ["+custID+"]: "+fmt.Sprintf("%v", xmlmcErr), true)
-		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API XML: "+XMLSTRING, false)
 	}
 
 	var xmlRespon xmlmcCustomerListResponse
 	err := xml.Unmarshal([]byte(XMLCustomerSearch), &xmlRespon)
 	if err != nil {
 		logger(4, "Unable to Search for Customer ["+custID+"]: "+fmt.Sprintf("%v", err), false)
-		logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+		logger(1, "API XML: "+XMLSTRING, false)
 	} else {
 		if xmlRespon.MethodResult != "ok" {
 			//Customer most likely does not exist
 			logger(4, "Unable to Search for Customer ["+custID+"]: "+xmlRespon.State.ErrorRet, false)
-			logger(1, "API XML: "+fmt.Sprintf("%s", XMLSTRING), false)
+			logger(1, "API XML: "+XMLSTRING, false)
 		} else {
 			//-- Check Response
 			if xmlRespon.CustomerFirstName != "" {
