@@ -216,6 +216,7 @@ Command Line Parameters
 - file - Defaults to `conf.json` - Name of the Configuration file to load
 - dryrun - Defaults to `false` - Set to True and the XMLMC for Create and Update assets will not be called and instead the XML will be dumped to the log file, this is to aid in debugging the initial connection information.
 - concurrent - defaults to `1`. This is to specify the number of assets that should be imported concurrently, and can be an integer between 1 and 10 (inclusive). 1 is the slowest level of import, but does not affect performance of your Hornbill instance, and 10 will process the import much more quickly but could affect instance performance while the import is running.
+- debug - defaults to `false` = Set to true to enable debug mode, which will output debugging information to the log
 
 ## Testing
 

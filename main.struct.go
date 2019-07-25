@@ -7,7 +7,7 @@ import (
 )
 
 //----- Constants -----
-const version = "1.7.3"
+const version = "1.8.0"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----
@@ -19,7 +19,9 @@ var (
 	counters          counterTypeStruct
 	configFileName    string
 	configMaxRoutines string
+	configDebug       bool
 	configDryRun      bool
+	configVersion     bool
 	Customers         []customerListStruct
 	TimeNow           string
 	APITimeNow        string

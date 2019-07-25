@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.8.0 (July 25th, 2019)
+
+Changes:
+
+- Added debug mode to output additional debug data to the log
+
 ## 1.7.3 (February 15th, 2019)
 
 Changes:

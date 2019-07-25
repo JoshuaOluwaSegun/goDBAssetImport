@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hornbill/goApiLib"
+	apiLib "github.com/hornbill/goApiLib"
 )
 
 // siteInCache -- Function to check if passed-thorugh site name has been cached
@@ -56,7 +56,7 @@ func searchSite(siteName string, espXmlmc *apiLib.XmlmcInstStruct) (bool, int) {
 		} else {
 			//-- Check Response
 			if xmlRespon.Params.RowData.Row.SiteName != "" {
-				if strings.ToLower(xmlRespon.Params.RowData.Row.SiteName) == strings.ToLower(siteName) {
+				if strings.EqualFold(xmlRespon.Params.RowData.Row.SiteName, siteName) {
 					intReturn = xmlRespon.Params.RowData.Row.SiteID
 					boolReturn = true
 					//-- Add Site to Cache
