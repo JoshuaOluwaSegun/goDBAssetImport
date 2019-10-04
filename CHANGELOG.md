@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.8.1 (October 4th, 2019)
+
+Changes:
+
+- Improved handling of interface nil values
+
 ## 1.8.0 (July 25th, 2019)
 
 Changes:

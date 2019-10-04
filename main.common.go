@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hornbill/color"
+	"github.com/fatih/color"
 )
 
 // getFieldValue --Retrieve field value from mapping via SQL record map
@@ -34,12 +34,16 @@ func getFieldValue(k string, v string, u map[string]interface{}) string {
 		if valFieldMap == "HBAssetType" {
 			valFieldMap = StrAssetType
 		} else {
-			interfaceContent := u[valFieldMap]
-			switch v := interfaceContent.(type) {
-			case []uint8:
-				valFieldMap = string(v)
-			default:
-				valFieldMap = fmt.Sprintf("%v", u[valFieldMap])
+			if u[valFieldMap] == nil {
+				valFieldMap = ""
+			} else {
+				interfaceContent := u[valFieldMap]
+				switch v := interfaceContent.(type) {
+				case []uint8:
+					valFieldMap = string(v)
+				default:
+					valFieldMap = fmt.Sprintf("%v", u[valFieldMap])
+				}
 			}
 		}
 		debugLog("valFieldMap 2:", valFieldMap)
@@ -49,12 +53,6 @@ func getFieldValue(k string, v string, u map[string]interface{}) string {
 			}
 			if strings.Contains(valFieldMap, "[") {
 				valFieldMap = ""
-			} else {
-				//20160215 Check for NULL (<nil>) field value
-				//Cannot do this when Scanning SQL data, as we don't know the returned cols - we're using MapScan
-				if valFieldMap == "<nil>" {
-					valFieldMap = ""
-				}
 			}
 		}
 		debugLog("valFieldMap 3:", valFieldMap)
