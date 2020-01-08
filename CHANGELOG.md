@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 1.9.0 (January 8th, 2020)
+
+Changes:
+
+- Added support for clearing asset column values
+
+Defect Fix:
+
+- Fixed issue where asset update counts were not always accurate
+
 ## 1.8.1 (October 4th, 2019)
 
 Changes:

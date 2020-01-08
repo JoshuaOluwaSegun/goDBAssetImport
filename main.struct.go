@@ -7,11 +7,12 @@ import (
 )
 
 //----- Constants -----
-const version = "1.8.1"
+const version = "1.9.0"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----
 var (
+	assets            = make(map[string]string)
 	maxLogFileSize    int64
 	SQLImportConf     sqlImportConfStruct
 	Sites             []siteListStruct
@@ -44,6 +45,7 @@ var (
 )
 
 //----- Structures -----
+
 type siteListStruct struct {
 	SiteName string
 	SiteID   int
@@ -54,10 +56,14 @@ type groupListStruct struct {
 	GroupID   string
 }
 type counterTypeStruct struct {
-	updated        uint16
-	created        uint16
-	updatedSkipped uint16
-	createskipped  uint16
+	updated              uint16
+	created              uint16
+	updateSkipped        uint16
+	updateRelatedFailed  uint16
+	updateRelatedSkipped uint16
+	createSkipped        uint16
+	updateFailed         uint16
+	createFailed         uint16
 }
 type sqlImportConfStruct struct {
 	APIKey                   string

@@ -14,8 +14,8 @@ import (
 	"time"
 	//SQL Drivers
 	_ "github.com/alexbrainman/odbc" //ODBC Driver
-	_ "github.com/hornbill/go-mssqldb"
-	_ "github.com/hornbill/mysql"
+	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/hornbill/mysql320" //MySQL v3.2.0 to v5 driver - Provides SWSQL (MySQL 4.0.16) support
 )
 
@@ -92,10 +92,14 @@ func main() {
 	}
 
 	//-- End output
-	logger(1, "Updated: "+fmt.Sprintf("%d", counters.updated), true)
-	logger(1, "Updated Skipped: "+fmt.Sprintf("%d", counters.updatedSkipped), true)
 	logger(1, "Created: "+fmt.Sprintf("%d", counters.created), true)
-	logger(1, "Created Skipped: "+fmt.Sprintf("%d", counters.createskipped), true)
+	logger(1, "Create Skipped: "+fmt.Sprintf("%d", counters.createSkipped), true)
+	logger(1, "Create Failed: "+fmt.Sprintf("%d", counters.createFailed), true)
+	logger(1, "Updated: "+fmt.Sprintf("%d", counters.updated), true)
+	logger(1, "Update Skipped: "+fmt.Sprintf("%d", counters.updateSkipped), true)
+	logger(1, "Update Failed: "+fmt.Sprintf("%d", counters.updateFailed), true)
+	logger(1, "Update Extended Record Skipped: "+fmt.Sprintf("%d", counters.updateRelatedSkipped), true)
+	logger(1, "Update Extended Record Failed: "+fmt.Sprintf("%d", counters.updateRelatedFailed), true)
 	//-- Show Time Takens
 	endTime = time.Since(startTime)
 	logger(1, "Time Taken: "+fmt.Sprintf("%v", endTime), true)

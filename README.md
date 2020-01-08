@@ -8,10 +8,9 @@
 - Extract zip into a folder you would like the application to run from e.g. `C:\asset_import\`
 - Open '''conf_sccm_assetscomputer.json''' and add in the necessary configration
 - Open Command Line Prompt as Administrator
-- Change Directory to the folder with goDBAssetImport_x64.exe `C:\asset_import\`
+- Change Directory to the folder with goDBAssetImport.exe `C:\asset_import\`
 - Run the command :
-  - For Windows 32bit Systems: goDBAssetImport_x86.exe -dryrun=true -file=conf_sccm_assetscomputer.json
-  - For Windows 64bit Systems: goDBAssetImport_x64.exe -dryrun=true -file=conf_sccm_assetscomputer.json
+  - For Windows Systems: goDBAssetImport.exe -dryrun=true -file=conf_sccm_assetscomputer.json
 
 ### Configuration
 
@@ -195,6 +194,7 @@ Example JSON File:
 
 - Maps data in to the generic Asset record
 - Any value wrapped with [] will be populated with the corresponding response from the SQL Query
+- Providing a value of `__clear__` will NULL that column for the record in the database when assets are being updated ONLY. This can either be hard-coded in the config, or sent as a string column within the SQL query resultset (`SELECT '__clear__' AS clearColumn` in the query and `[clearColumn]` in the mapping for example)
 - Any Other Value is treated literally as written example:
   - "h_name":"[MachineName]", - the value of MachineName is taken from the SQL output and populated within this field
   - "h_description":"This is a description", - the value of "h_description" would be populated with "This is a description" for ALL imported assets
@@ -222,16 +222,16 @@ Command Line Parameters
 
 If you run the application with the argument dryrun=true then no assets will be created or updated, the XML used to create or update will be saved in the log file so you can ensure the data mappings are correct before running the import.
 
-'goDBAssetImport_x64.exe -dryrun=true'
+'goDBAssetImport.exe -dryrun=true'
 
 ## Scheduling
 
 ### Windows
 
-You can schedule goDBAssetImport_x64.exe to run with any optional command line argument from Windows Task Scheduler:
+You can schedule goDBAssetImport.exe to run with any optional command line argument from Windows Task Scheduler:
 
-- Ensure the user account running the task has rights to goDBAssetImport_x64.exe and the containing folder.
-- Make sure the Start In parameter contains the folder where goDBAssetImport_x64.exe resides in otherwise it will not be able to pick up the correct path.
+- Ensure the user account running the task has rights to goDBAssetImport.exe and the containing folder.
+- Make sure the Start In parameter contains the folder where goDBAssetImport.exe resides in otherwise it will not be able to pick up the correct path.
 
 ## Logging
 

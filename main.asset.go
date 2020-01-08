@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	apiLib "github.com/hornbill/goApiLib"
@@ -59,7 +60,7 @@ func processAssets(arrAssets []map[string]interface{}, assetIdentifier assetIden
 		worker.Add(1)
 		assetMap := assetRecord
 		//Get the asset ID for the current record
-		assetID := fmt.Sprintf("%s", assetMap[assetIDIdent])
+		assetID := fmt.Sprint(assetMap[assetIDIdent])
 
 		debugLog("Asset ID:", assetID)
 
@@ -79,10 +80,10 @@ func processAssets(arrAssets []map[string]interface{}, assetIdentifier assetIden
 			if searchSuccess {
 				if boolUpdate {
 					logger(1, "Update Asset: "+assetID, false)
-					updateAsset(assetMap, assetIDInstance, espXmlmc)
+					updateAsset(assetMap, assetIDInstance, assetID, espXmlmc)
 				} else {
 					logger(1, "Create Asset: "+assetID, false)
-					createAsset(assetMap, espXmlmc)
+					createAsset(assetMap, assetID, espXmlmc)
 				}
 			} else {
 				logger(4, "Asset search API call failed for asset with Unique ID: "+assetID, true)
@@ -138,12 +139,12 @@ func getAssetID(assetID string, assetIdentifier assetIdentifierStruct, espXmlmc 
 }
 
 // createAsset -- Creates Asset record from the passed through map data
-func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
+func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLib.XmlmcInstStruct) {
 	//Get site ID
 	siteID := ""
 	siteNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_site"])
 	siteName := getFieldValue("h_site", siteNameMapping, u)
-	if siteName != "" {
+	if siteName != "" && siteName != "__clear__" {
 		siteIsInCache, SiteIDCache := siteInCache(siteName)
 		//-- Check if we have cached the site already
 		if siteIsInCache {
@@ -162,7 +163,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 	companyID := ""
 	companyNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_company_name"])
 	companyName := getFieldValue("h_company_name", companyNameMapping, u)
-	if companyName != "" && companyName != "<nil>" {
+	if companyName != "" && companyName != "<nil>" && companyName != "__clear__" {
 		companyIsInCache, CompanyIDCache := groupInCache(companyName, 5)
 		if companyIsInCache {
 			companyID = CompanyIDCache
@@ -180,7 +181,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 	ownedByURN := ""
 	ownedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_owned_by"])
 	ownedByID := getFieldValue("h_owned_by", ownedByMapping, u)
-	if ownedByID != "" && ownedByID != "<nil>" {
+	if ownedByID != "" && ownedByID != "<nil>" && ownedByID != "__clear__" {
 		ownedByIsInCache, ownedByNameCache := customerInCache(ownedByID)
 		//-- Check if we have cached the customer already
 		if ownedByIsInCache {
@@ -203,7 +204,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 	usedByURN := ""
 	usedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_used_by"])
 	usedByID := getFieldValue("h_used_by", usedByMapping, u)
-	if usedByID != "" && usedByID != "<nil>" {
+	if usedByID != "" && usedByID != "<nil>" && usedByID != "__clear__" {
 		usedByIsInCache, usedByNameCache := customerInCache(usedByID)
 		//-- Check if we have cached the customer already
 		if usedByIsInCache {
@@ -226,7 +227,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 	lastLoggedOnByName := ""
 	lastLoggedOnUserMapping := fmt.Sprintf("%v", SQLImportConf.AssetTypeFieldMapping["h_last_logged_on_user"])
 	lastLoggedOnByID := getFieldValue("h_last_logged_on_user", lastLoggedOnUserMapping, u)
-	if lastLoggedOnUserMapping != "" && lastLoggedOnByID != "" && lastLoggedOnByID != "<nil>" {
+	if lastLoggedOnUserMapping != "" && lastLoggedOnByID != "" && lastLoggedOnByID != "<nil>" && lastLoggedOnByID != "__clear__" {
 		lastLoggedOnByIsInCache, lastLoggedOnByNameCache := customerInCache(lastLoggedOnByID)
 		//-- Check if we have cached the customer already
 		if lastLoggedOnByIsInCache {
@@ -262,7 +263,9 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 		strMapping := fmt.Sprintf("%v", v)
 		value := getFieldValue(k, strMapping, u)
 		debugLog(k, ":", strMapping, ":", value)
-
+		if value == "__clear__" {
+			continue
+		}
 		if k == "h_used_by" && usedByName != "" && usedByURN != "" {
 			espXmlmc.SetParam("h_used_by", usedByURN)
 			espXmlmc.SetParam("h_used_by_name", usedByName)
@@ -332,7 +335,7 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 		err := xml.Unmarshal([]byte(XMLCreate), &xmlRespon)
 		if err != nil {
 			mutexCounters.Lock()
-			counters.createskipped++
+			counters.createFailed++
 			mutexCounters.Unlock()
 			logger(4, "Unable to read response from Hornbill instance from entityAddRecord API for createAsset:"+fmt.Sprintf("%v", err), false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
@@ -342,13 +345,14 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 			logger(3, "Unable to add asset: "+xmlRespon.State.ErrorRet, false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
-			counters.createskipped++
+			counters.createFailed++
 			mutexCounters.Unlock()
 		} else {
 			mutexCounters.Lock()
 			counters.created++
 			mutexCounters.Unlock()
 			assetID := xmlRespon.UpdatedCols.AssetPK
+			assets[strNewAssetID] = assetID
 			//Now add asset URN
 			espXmlmc.SetParam("application", "com.hornbill.servicemanager")
 			espXmlmc.SetParam("entity", "Asset")
@@ -383,21 +387,28 @@ func createAsset(u map[string]interface{}, espXmlmc *apiLib.XmlmcInstStruct) {
 		var XMLSTRING = espXmlmc.GetParam()
 		logger(1, "Asset Create XML "+XMLSTRING, false)
 		mutexCounters.Lock()
-		counters.createskipped++
+		counters.createSkipped++
 		mutexCounters.Unlock()
 		espXmlmc.ClearParam()
 	}
 }
 
 // updateAsset -- Updates Asset record from the passed through map data and asset ID
-func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.XmlmcInstStruct) bool {
-
+func updateAsset(u map[string]interface{}, strAssetID, strNewAssetID string, espXmlmc *apiLib.XmlmcInstStruct) bool {
 	boolRecordUpdated := false
+
+	//Shared clearAttrib array
+	var nilAttrib []apiLib.ParamAttribStruct
+	attrib := apiLib.ParamAttribStruct{}
+	attrib.Name = "nil"
+	attrib.Value = "true"
+	nilAttrib = append(nilAttrib, attrib)
+
 	//Get site ID
 	siteID := ""
 	siteNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_site"])
 	siteName := getFieldValue("h_site", siteNameMapping, u)
-	if siteName != "" && siteName != "<nil>" {
+	if siteName != "" && siteName != "<nil>" && siteName != "__clear__" {
 		siteIsInCache, SiteIDCache := siteInCache(siteName)
 		//-- Check if we have cached the site already
 		if siteIsInCache {
@@ -416,7 +427,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 	companyID := ""
 	companyNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_company_name"])
 	companyName := getFieldValue("h_company_name", companyNameMapping, u)
-	if companyName != "" && companyName != "<nil>" {
+	if companyName != "" && companyName != "<nil>" && companyName != "__clear__" {
 		companyIsInCache, CompanyIDCache := groupInCache(companyName, 5)
 		if companyIsInCache {
 			companyID = CompanyIDCache
@@ -434,7 +445,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 	ownedByURN := ""
 	ownedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_owned_by"])
 	ownedByID := getFieldValue("h_owned_by", ownedByMapping, u)
-	if ownedByID != "" && ownedByID != "<nil>" {
+	if ownedByID != "" && ownedByID != "<nil>" && ownedByID != "__clear__" {
 		ownedByIsInCache, ownedByNameCache := customerInCache(ownedByID)
 		//-- Check if we have cached the customer already
 		if ownedByIsInCache {
@@ -457,7 +468,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 	usedByURN := ""
 	usedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_used_by"])
 	usedByID := getFieldValue("h_used_by", usedByMapping, u)
-	if usedByID != "" && usedByID != "<nil>" {
+	if usedByID != "" && usedByID != "<nil>" && usedByID != "__clear__" {
 		usedByIsInCache, usedByNameCache := customerInCache(usedByID)
 		//-- Check if we have cached the customer already
 		if usedByIsInCache {
@@ -480,7 +491,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 	lastLoggedOnByName := ""
 	lastLoggedOnUserMapping := fmt.Sprintf("%v", SQLImportConf.AssetTypeFieldMapping["h_last_logged_on_user"])
 	lastLoggedOnByID := getFieldValue("h_last_logged_on_user", lastLoggedOnUserMapping, u)
-	if lastLoggedOnUserMapping != "" && lastLoggedOnByID != "" && lastLoggedOnByID != "<nil>" {
+	if lastLoggedOnUserMapping != "" && lastLoggedOnByID != "" && lastLoggedOnByID != "<nil>" && lastLoggedOnByID != "__clear__" {
 		lastLoggedOnByIsInCache, lastLoggedOnByNameCache := customerInCache(lastLoggedOnByID)
 		//-- Check if we have cached the customer already
 		if lastLoggedOnByIsInCache {
@@ -506,34 +517,58 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 	espXmlmc.SetParam("h_pk_asset_id", strAssetID)
 	espXmlmc.SetParam("h_asset_urn", "urn:sys:entity:com.hornbill.servicemanager:Asset:"+strAssetID)
 	debugLog("Asset Field Mapping")
+
 	//Get asset field mapping
 	for k, v := range SQLImportConf.AssetGenericFieldMapping {
 		strMapping := fmt.Sprintf("%v", v)
 		value := getFieldValue(k, strMapping, u)
 		debugLog(k, ":", strMapping, ":", value)
 
-		if k == "h_used_by" && usedByName != "" && usedByURN != "" {
-			espXmlmc.SetParam("h_used_by", usedByURN)
-			espXmlmc.SetParam("h_used_by_name", usedByName)
+		if k == "h_used_by" && usedByID != "" {
+			if usedByID == "__clear__" {
+				espXmlmc.SetParamAttr("h_used_by", "", nilAttrib)
+				espXmlmc.SetParamAttr("h_used_by_name", "", nilAttrib)
+			} else if usedByName != "" && usedByURN != "" {
+				espXmlmc.SetParam("h_used_by", usedByURN)
+				espXmlmc.SetParam("h_used_by_name", usedByName)
+			}
+			continue
 		}
-		if k == "h_owned_by" && ownedByName != "" && ownedByURN != "" {
-			espXmlmc.SetParam("h_owned_by", ownedByURN)
-			espXmlmc.SetParam("h_owned_by_name", ownedByName)
+
+		if k == "h_owned_by" && ownedByID != "" {
+			if ownedByID == "__clear__" {
+				espXmlmc.SetParamAttr("h_owned_by", "", nilAttrib)
+				espXmlmc.SetParamAttr("h_owned_by_name", "", nilAttrib)
+			} else if ownedByName != "" && ownedByURN != "" {
+				espXmlmc.SetParam("h_owned_by", ownedByURN)
+				espXmlmc.SetParam("h_owned_by_name", ownedByName)
+			}
+			continue
 		}
-		if k == "h_site" && siteID != "" && siteName != "" {
-			espXmlmc.SetParam("h_site", siteName)
-			espXmlmc.SetParam("h_site_id", siteID)
+		if k == "h_site" && siteName != "" {
+			if siteName == "__clear__" {
+				espXmlmc.SetParamAttr("h_site", "", nilAttrib)
+				espXmlmc.SetParamAttr("h_site_id", "", nilAttrib)
+			} else if siteID != "" {
+				espXmlmc.SetParam("h_site", siteName)
+				espXmlmc.SetParam("h_site_id", siteID)
+			}
+			continue
 		}
-		if k == "h_company_name" && companyID != "" && companyName != "" {
-			espXmlmc.SetParam("h_company_name", companyName)
-			espXmlmc.SetParam("h_company_id", companyID)
+		if k == "h_company_name" && companyName != "" {
+			if companyName == "__clear__" {
+				espXmlmc.SetParamAttr("h_company_name", "", nilAttrib)
+				espXmlmc.SetParamAttr("h_company_id", "", nilAttrib)
+			} else if companyID != "" {
+				espXmlmc.SetParam("h_company_name", companyName)
+				espXmlmc.SetParam("h_company_id", companyID)
+			}
+			continue
 		}
-		if k != "h_site" &&
-			k != "h_used_by" &&
-			k != "h_owned_by" &&
-			k != "h_company_name" &&
-			strMapping != "" &&
-			value != "" {
+
+		if value == "__clear__" {
+			espXmlmc.SetParamAttr(k, "", nilAttrib)
+		} else if strMapping != "" && value != "" {
 			espXmlmc.SetParam(k, value)
 		}
 	}
@@ -550,7 +585,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 			logger(4, "API Call failed when Updating Asset:"+fmt.Sprintf("%v", xmlmcErr), false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
-			counters.updatedSkipped++
+			counters.updateFailed++
 			mutexCounters.Unlock()
 			return false
 		}
@@ -562,22 +597,30 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 			logger(4, "Unable to read response from Hornbill instance when Updating Asset:"+fmt.Sprintf("%v", err), false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
-			counters.updatedSkipped++
+			counters.updateFailed++
 			mutexCounters.Unlock()
 			return false
 		}
-		if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" {
+		if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" && !strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected") {
 			logger(3, "Unable to Update Asset: "+xmlRespon.State.ErrorRet, false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
-			counters.updatedSkipped++
+			counters.updateFailed++
 			mutexCounters.Unlock()
 			return false
 		}
 
-		if len(xmlRespon.UpdatedCols.ColList) > 0 {
+		if xmlRespon.MethodResult != "ok" && (xmlRespon.State.ErrorRet == "There are no values to update" || strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected")) {
+			mutexCounters.Lock()
+			counters.updateSkipped++
+			mutexCounters.Unlock()
+		}
+
+		if xmlRespon.MethodResult == "ok" {
 			boolRecordUpdated = true
 		}
+
+		assets[strNewAssetID] = strAssetID
 
 		//-- now process extended record data
 		espXmlmc.SetParam("application", appServiceManager)
@@ -601,12 +644,15 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 			strMapping := fmt.Sprintf("%v", v)
 			value := getFieldValue(k, strMapping, u)
 			debugLog(k, ":", strMapping, ":", value)
-
-			if k == "h_last_logged_on_user" && lastLoggedOnByURN != "" {
-				espXmlmc.SetParam("h_last_logged_on_user", lastLoggedOnByURN)
-			}
-			if k != "h_last_logged_on_user" && strMapping != "" && value != "" {
-				espXmlmc.SetParam(k, value)
+			if value == "__clear__" {
+				espXmlmc.SetParamAttr(k, "", nilAttrib)
+			} else {
+				if k == "h_last_logged_on_user" && lastLoggedOnByURN != "" {
+					espXmlmc.SetParam("h_last_logged_on_user", lastLoggedOnByURN)
+				}
+				if k != "h_last_logged_on_user" && strMapping != "" && value != "" {
+					espXmlmc.SetParam(k, value)
+				}
 			}
 		}
 		espXmlmc.CloseElement("record")
@@ -618,7 +664,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 			logger(4, "API Call failed when Updating Asset Extended Details:"+fmt.Sprintf("%v", xmlmcErrExt), false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
-			counters.updatedSkipped++
+			counters.updateFailed++
 			mutexCounters.Unlock()
 			return false
 		}
@@ -629,28 +675,30 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 			logger(4, "Unable to read response from Hornbill instance when Updating Asset Extended Details:"+fmt.Sprintf("%v", err), false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
-			counters.updatedSkipped++
+			counters.updateRelatedFailed++
 			mutexCounters.Unlock()
 			return false
 		}
-		if xmlResponExt.MethodResult != "ok" && xmlResponExt.State.ErrorRet != "There are no values to update" {
+		if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" && !strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected") {
 			logger(3, "Unable to Update Asset Extended Details: "+xmlResponExt.State.ErrorRet, false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
 			mutexCounters.Lock()
-			counters.updatedSkipped++
+			counters.updateRelatedFailed++
 			mutexCounters.Unlock()
 			return false
 		}
 
-		if len(xmlResponExt.UpdatedCols.ColList) > 0 {
+		if xmlRespon.MethodResult != "ok" && (xmlRespon.State.ErrorRet == "There are no values to update" || strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected")) {
+			mutexCounters.Lock()
+			counters.updateRelatedSkipped++
+			mutexCounters.Unlock()
+		}
+
+		if xmlRespon.MethodResult == "ok" {
 			boolRecordUpdated = true
 		}
 
-		if !boolRecordUpdated {
-			mutexCounters.Lock()
-			counters.updatedSkipped++
-			mutexCounters.Unlock()
-		} else {
+		if boolRecordUpdated {
 			//-- Asset Updated!
 			//-- Need to run another update against the Asset for LAST UPDATED and LAST UPDATE BY!
 			espXmlmc.SetParam("application", appServiceManager)
@@ -687,7 +735,7 @@ func updateAsset(u map[string]interface{}, strAssetID string, espXmlmc *apiLib.X
 	} else {
 		//-- Inc Counter
 		mutexCounters.Lock()
-		counters.updatedSkipped++
+		counters.updateSkipped++
 		mutexCounters.Unlock()
 		logger(1, "Asset Update XML "+XMLSTRING, false)
 		espXmlmc.ClearParam()
