@@ -17,8 +17,8 @@ versiond=${versiond// /}
 platforms="windows/386 windows/amd64 darwin/amd64"
 printf " ---- Building Asset Import $versiond ---- \n"
 
-sed -i.bak 's/{version}/'${version}'/g' README.md
-sed -i.bak 's/{versiond}/'${versiond}'/g' README.md
+rm -rf "release/"
+mkdir release
 
 printf "\n"
 for platform in ${platforms}
@@ -56,7 +56,7 @@ do
         os="osx"
     fi
     zip -r "${package}_${os}_${arch}_v${version}.zip" $output LICENSE.md README.md conf*.json > /dev/null
-    cp "${package}_${os}_${arch}_v${version}.zip" "../../../${package}_${os}_${arch}_v${version}.zip"
+    cp "${package}_${os}_${arch}_v${version}.zip" "../../../release/${package}_${os}_${arch}_v${version}.zip"
     cd $currentdir
     printf "\n"
 done

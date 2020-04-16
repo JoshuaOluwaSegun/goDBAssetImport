@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.9.1 (April 16th, 2020)
+
+Change:
+
+- Updated code to support Core application and platform changes
+
 ## 1.9.0 (January 8th, 2020)
 
 Changes:
