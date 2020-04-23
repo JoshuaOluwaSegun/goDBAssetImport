@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.10.0 (April 23rd, 2020)
+
+Change:
+
+- Added support to skip updating asset user when asset is shared
+
 ## 1.9.1 (April 16th, 2020)
 
 Change:

@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Printer",
+        "PreserveShared": false,
         "Query": "AND tblAssetCustom.Custom2 = 'Printer'",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

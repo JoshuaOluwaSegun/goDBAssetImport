@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Desktop App",
+        "PreserveShared": false,
         "Query": "AND tblAssetCustom.Custom2 = 'Desktop App'",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

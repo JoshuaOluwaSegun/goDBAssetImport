@@ -87,7 +87,7 @@ func main() {
 		var boolSQLAssets, arrAssets = queryDatabase(StrSQLAppend, StrAssetType)
 		if boolSQLAssets {
 			//Process records returned by query
-			processAssets(arrAssets, v.AssetIdentifier)
+			processAssets(arrAssets, v)
 		}
 	}
 

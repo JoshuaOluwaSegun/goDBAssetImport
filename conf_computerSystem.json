@@ -16,6 +16,7 @@
     "AssetTypes": [{
             "AssetType": "Server",
             "Query": "",
+            "PreserveShared": false,
             "AssetIdentifier": {
                 "DBColumn": "SystemSerialNumber",
                 "Entity": "AssetsComputer",
@@ -25,6 +26,7 @@
         {
             "AssetType": "Laptop",
             "Query": "",
+            "PreserveShared": false,
             "AssetIdentifier": {
                 "DBColumn": "MachineName",
                 "Entity": "Asset",
@@ -34,6 +36,7 @@
         {
             "AssetType": "Desktop",
             "Query": "",
+            "PreserveShared": false,
             "AssetIdentifier": {
                 "DBColumn": "",
                 "Entity": "",
@@ -43,6 +46,7 @@
         {
             "AssetType": "Virtual Machine",
             "Query": "",
+            "PreserveShared": false,
             "AssetIdentifier": {
                 "DBColumn": "",
                 "Entity": "",

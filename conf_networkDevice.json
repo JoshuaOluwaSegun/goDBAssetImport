@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Network Device",
+        "PreserveShared": false,
         "Query": "AND tblAssetCustom.Custom2 = 'Network Device''",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

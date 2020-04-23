@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Desk Phone",
+        "PreserveShared": false,
         "Query": "AND tblAssetCustom.Custom2 = 'Desk Phone'",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

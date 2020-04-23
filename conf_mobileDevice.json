@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Tablet",
+        "PreserveShared": false,
         "Query": "AND tblAssetCustom.Custom2 = 'iPad'",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

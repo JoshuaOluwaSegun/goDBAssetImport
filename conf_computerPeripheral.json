@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Monitor",
+        "PreserveShared": false,
         "Query": "AND tblAssetCustom.Custom2 = 'Monitor'",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

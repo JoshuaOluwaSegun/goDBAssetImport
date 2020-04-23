@@ -45,13 +45,13 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 //processAssets -- Processes Assets from Asset Map
 //--If asset already exists on the instance, update
 //--If asset doesn't exist, create
-func processAssets(arrAssets []map[string]interface{}, assetIdentifier assetIdentifierStruct) {
+func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruct) {
 	bar := pb.StartNew(len(arrAssets))
 	logger(1, "Processing Assets", false)
 
 	//Get the identity of the AssetID field from the config
-	assetIDIdent := fmt.Sprintf("%v", assetIdentifier.DBColumn)
-	debugLog("Asset Identifier:", assetIdentifier.DBColumn, assetIDIdent)
+	assetIDIdent := fmt.Sprintf("%v", assetType.AssetIdentifier.DBColumn)
+	debugLog("Asset Identifier:", assetType.AssetIdentifier.DBColumn, assetIDIdent)
 	//-- Loop each asset
 	maxGoroutinesGuard := make(chan struct{}, maxGoroutines)
 
@@ -74,13 +74,17 @@ func processAssets(arrAssets []map[string]interface{}, assetIdentifier assetIden
 			mutexBar.Unlock()
 
 			var boolUpdate = false
-			boolUpdate, searchSuccess, assetIDInstance := getAssetID(assetID, assetIdentifier, espXmlmc)
+			boolUpdate, searchSuccess, assetIDInstance := getAssetID(assetID, assetType.AssetIdentifier, espXmlmc)
 			debugLog("assetIDInstance:", assetIDInstance)
 			//-- Update or Create Asset
 			if searchSuccess {
 				if boolUpdate {
+					usedBy := ""
+					if assetType.PreserveShared {
+						usedBy = getAssetUsedBy(assetIDInstance, espXmlmc)
+					}
 					logger(1, "Update Asset: "+assetID, false)
-					updateAsset(assetMap, assetIDInstance, assetID, espXmlmc)
+					updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc)
 				} else {
 					logger(1, "Create Asset: "+assetID, false)
 					createAsset(assetMap, assetID, espXmlmc)
@@ -93,6 +97,37 @@ func processAssets(arrAssets []map[string]interface{}, assetIdentifier assetIden
 	}
 	worker.Wait()
 	bar.FinishPrint("Processing Complete!")
+}
+
+//getAssetUsedBy - returns asset details
+func getAssetUsedBy(assetID string, espXmlmc *apiLib.XmlmcInstStruct) string {
+	returnUsedBy := ""
+	espXmlmc.SetParam("application", appServiceManager)
+	espXmlmc.SetParam("entity", "Asset")
+	espXmlmc.SetParam("keyValue", assetID)
+	debugLog("Retrieving Used By for " + assetID)
+	var XMLSTRING = espXmlmc.GetParam()
+	XMLAssetSearch, xmlmcErr := espXmlmc.Invoke("data", "entityGetRecord")
+	if xmlmcErr != nil {
+		logger(4, "API Call failed when retrieving Asset Details ["+assetID+"] :"+xmlmcErr.Error(), false)
+		logger(1, "API Call XML: "+XMLSTRING, false)
+	} else {
+		var xmlRespon xmlmcAssetDetails
+		err := xml.Unmarshal([]byte(XMLAssetSearch), &xmlRespon)
+		if err != nil {
+			logger(3, "Unable to retrieve Asset ["+assetID+"] : "+err.Error(), true)
+			logger(1, "API Call XML: "+XMLSTRING, false)
+		} else {
+			if xmlRespon.MethodResult != "ok" {
+				logger(3, "Unable to retrieve Asset details ["+assetID+"] : "+xmlRespon.State.ErrorRet, true)
+				logger(1, "API Call XML: "+XMLSTRING, false)
+			} else {
+				returnUsedBy = xmlRespon.Details.UsedByName
+			}
+		}
+	}
+	debugLog("getAssetUsedBy " + returnUsedBy)
+	return returnUsedBy
 }
 
 //getAssetID -- Check if asset is on the instance
@@ -394,7 +429,7 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 }
 
 // updateAsset -- Updates Asset record from the passed through map data and asset ID
-func updateAsset(u map[string]interface{}, strAssetID, strNewAssetID string, espXmlmc *apiLib.XmlmcInstStruct) bool {
+func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetID, strNewAssetID, usedBy string, espXmlmc *apiLib.XmlmcInstStruct) bool {
 	boolRecordUpdated := false
 
 	//Shared clearAttrib array
@@ -466,25 +501,31 @@ func updateAsset(u map[string]interface{}, strAssetID, strNewAssetID string, esp
 	//Get Used By name
 	usedByName := ""
 	usedByURN := ""
-	usedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_used_by"])
-	usedByID := getFieldValue("h_used_by", usedByMapping, u)
-	if usedByID != "" && usedByID != "<nil>" && usedByID != "__clear__" {
-		usedByIsInCache, usedByNameCache := customerInCache(usedByID)
-		//-- Check if we have cached the customer already
-		if usedByIsInCache {
-			usedByName = usedByNameCache
-		} else {
-			usedByIsOnInstance, usedByNameInstance := searchCustomer(usedByID, espXmlmc)
-			//-- If Returned set output
-			if usedByIsOnInstance {
-				usedByName = usedByNameInstance
+	usedByID := ""
+	debugLog("UsedBy: " + usedBy)
+	if assetType.PreserveShared && usedBy == "Shared" {
+		debugLog("Preserving Used By " + usedBy)
+	} else {
+		usedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_used_by"])
+		usedByID = getFieldValue("h_used_by", usedByMapping, u)
+		if usedByID != "" && usedByID != "<nil>" && usedByID != "__clear__" {
+			usedByIsInCache, usedByNameCache := customerInCache(usedByID)
+			//-- Check if we have cached the customer already
+			if usedByIsInCache {
+				usedByName = usedByNameCache
+			} else {
+				usedByIsOnInstance, usedByNameInstance := searchCustomer(usedByID, espXmlmc)
+				//-- If Returned set output
+				if usedByIsOnInstance {
+					usedByName = usedByNameInstance
+				}
 			}
 		}
+		if usedByName != "" {
+			usedByURN = "urn:sys:0:" + usedByName + ":" + usedByID
+		}
+		debugLog("Used By Mapping:", usedByMapping, ":", usedByID, ":", usedByName, ":", usedByURN)
 	}
-	if usedByName != "" {
-		usedByURN = "urn:sys:0:" + usedByName + ":" + usedByID
-	}
-	debugLog("Used By Mapping:", usedByMapping, ":", usedByID, ":", usedByName, ":", usedByURN)
 
 	//Last Logged On By
 	lastLoggedOnByURN := ""

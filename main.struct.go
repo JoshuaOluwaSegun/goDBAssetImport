@@ -7,7 +7,7 @@ import (
 )
 
 //----- Constants -----
-const version = "1.9.1"
+const version = "1.10.0"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----
@@ -78,6 +78,7 @@ type sqlImportConfStruct struct {
 
 type assetTypesStruct struct {
 	AssetType       string
+	PreserveShared  bool
 	Query           string
 	AssetIdentifier assetIdentifierStruct
 }
@@ -166,16 +167,23 @@ type xmlmcAssetResponse struct {
 	Params       paramsAssetStruct `xml:"params"`
 	State        stateStruct       `xml:"state"`
 }
+type xmlmcAssetDetails struct {
+	MethodResult string            `xml:"status,attr"`
+	Details      assetObjectStruct `xml:"params>primaryEntityData>record"`
+	State        stateStruct       `xml:"state"`
+}
 type paramsAssetStruct struct {
 	RowData paramsAssetRowDataStruct `xml:"rowData"`
 }
 type paramsAssetRowDataStruct struct {
 	Row assetObjectStruct `xml:"row"`
 }
+
 type assetObjectStruct struct {
 	AssetID    string `xml:"h_pk_asset_id"`
 	AssetClass string `xml:"h_class"`
 	AssetType  string `xml:"h_country"`
+	UsedByName string `xml:"h_used_by_name"`
 }
 
 //Asset Type Structures
