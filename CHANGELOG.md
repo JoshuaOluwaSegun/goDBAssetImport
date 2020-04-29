@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.10.1 (April 29th, 2020)
+
+Defect Fix:
+
+- Fixed asset identifier character encoding issue when assets are queried from ODBC
+
 ## 1.10.0 (April 23rd, 2020)
 
 Change:

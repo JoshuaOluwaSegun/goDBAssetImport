@@ -51,7 +51,7 @@ func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruc
 
 	//Get the identity of the AssetID field from the config
 	assetIDIdent := fmt.Sprintf("%v", assetType.AssetIdentifier.DBColumn)
-	debugLog("Asset Identifier:", assetType.AssetIdentifier.DBColumn, assetIDIdent)
+	debugLog("Asset Identifier:", assetType.AssetIdentifier.Entity, assetType.AssetIdentifier.EntityColumn, assetType.AssetIdentifier.DBColumn, assetIDIdent)
 	//-- Loop each asset
 	maxGoroutinesGuard := make(chan struct{}, maxGoroutines)
 
@@ -60,7 +60,14 @@ func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruc
 		worker.Add(1)
 		assetMap := assetRecord
 		//Get the asset ID for the current record
-		assetID := fmt.Sprint(assetMap[assetIDIdent])
+		interfaceContent := assetMap[assetIDIdent]
+		var assetID string
+		switch v := interfaceContent.(type) {
+		case []uint8:
+			assetID = string(v)
+		default:
+			assetID = fmt.Sprintf("%v", assetMap[assetIDIdent])
+		}
 
 		debugLog("Asset ID:", assetID)
 
