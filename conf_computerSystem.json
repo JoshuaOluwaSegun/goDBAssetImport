@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
             "AssetType": "Server",
+            "OperationType": "Both",
             "Query": "",
             "PreserveShared": false,
             "PreserveState": false,
@@ -31,6 +32,7 @@
         },
         {
             "AssetType": "Laptop",
+            "OperationType": "Both",
             "Query": "",
             "PreserveShared": false,
             "PreserveState": false,
@@ -44,6 +46,7 @@
         },
         {
             "AssetType": "Desktop",
+            "OperationType": "Both",
             "Query": "",
             "PreserveShared": false,
             "PreserveState": false,
@@ -57,6 +60,7 @@
         },
         {
             "AssetType": "Virtual Machine",
+            "OperationType": "Both",
             "Query": "",
             "PreserveShared": false,
             "PreserveState": false,

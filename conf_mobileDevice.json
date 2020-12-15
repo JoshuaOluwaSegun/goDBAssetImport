@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Tablet",
+        "OperationType": "Both",
         "PreserveShared": false,
         "PreserveState": false,
         "PreserveSubState": false,

@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Printer",
+        "OperationType": "Both",
         "PreserveShared": false,
         "PreserveState": false,
         "PreserveSubState": false,

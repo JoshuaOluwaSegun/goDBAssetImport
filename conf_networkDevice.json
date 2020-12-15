@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Network Device",
+        "OperationType": "Both",
         "PreserveShared": false,
         "PreserveState": false,
         "PreserveSubState": false,

@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
         "AssetType": "Desk Phone",
+        "OperationType": "Both",
         "PreserveShared": false,
         "PreserveState": false,
         "PreserveSubState": false,

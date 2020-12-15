@@ -35,6 +35,7 @@ Example JSON File:
   "AssetTypes": [
     {
         "AssetType": "Server",
+        "OperationType": "Both",
         "PreserveShared": false,
         "PreserveState": false,
         "PreserveSubState": false,
@@ -48,6 +49,7 @@ Example JSON File:
     },
     {
         "AssetType": "Laptop",
+        "OperationType": "Create",
         "PreserveShared": false,
         "PreserveState": false,
         "PreserveSubState": false,
@@ -61,6 +63,7 @@ Example JSON File:
     },
     {
         "AssetType": "Desktop",
+        "OperationType": "Update", 
         "PreserveShared": false,
         "PreserveState": false,
         "PreserveSubState": false,
@@ -74,6 +77,7 @@ Example JSON File:
     },
     {
         "AssetType": "Virtual Machine",
+        "OperationType": "Both",
         "PreserveShared": false,
         "PreserveState": false,
         "PreserveSubState": false,
@@ -203,11 +207,11 @@ Example JSON File:
 
 - An array of objects details the asset types to import:
   - AssetType - the Asset Type Name which needs to match a correct Asset Type Name in your Hornbill Instance
+  - OperationType - The type of operation that should be performed on discovered assets - can be Create, Update or Both. Defaults to Both if no value is provided
   - PreserveShared - If set to true, when updating assets that are Shared, then the Used By fields will not be updated. Defaults to false
   - PreserveState - If set to true then the State field will not be updated. Defaults to false
   - PreserveSubState - If set to true then the SubState fields will not be updated. Defaults to false
   - PreserveOperationalState - If set to true then the Operational State field will not be updated. Defaults to false
-  - PreserveState - If set to true then the State field will not be updated. Defaults to false
   - Query - additional SQL filter to be appended to the Query from SQLConf, to retrieve assets of that asset type.
   - AssetIdentifier - an object containing details to help in the identification of existing asset records in the Hornbill instance. If value in an imported records DBColumn matches the value in the EntityColumn of an asset in Hornbill (within the defined Entity), then the asset record will be updated rather than a new asset being created:
     - DBColumn - specifies the unique identifier column from the database query

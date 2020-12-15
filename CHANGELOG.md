@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.12.0 (December 15th, 2020)
+
+Feature:
+
+- Added support to allow for asset types being imported to be restricted to Create/Update/Both operations
+
 ## 1.11.0 (December 15th, 2020)
 
 Feature:

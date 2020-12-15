@@ -15,6 +15,7 @@
     },
     "AssetTypes": [{
             "AssetType": "Laptop",
+            "OperationType": "Both",
             "PreserveShared": false,
             "PreserveState": false,
             "PreserveSubState": false,
@@ -28,6 +29,7 @@
         },
         {
             "AssetType": "Desktop",
+            "OperationType": "Both",
             "PreserveShared": false,
             "PreserveState": false,
             "PreserveSubState": false,
@@ -41,6 +43,7 @@
         },
         {
             "AssetType": "Server",
+            "OperationType": "Both",
             "PreserveShared": false,
             "PreserveState": false,
             "PreserveSubState": false,

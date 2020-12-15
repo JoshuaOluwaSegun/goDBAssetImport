@@ -86,15 +86,19 @@ func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruc
 			//-- Update or Create Asset
 			if searchSuccess {
 				if boolUpdate {
-					usedBy := ""
-					if assetType.PreserveShared {
-						usedBy = getAssetUsedBy(assetIDInstance, espXmlmc)
+					if assetType.OperationType == "" || strings.ToLower(assetType.OperationType) == "both" || strings.ToLower(assetType.OperationType) == "update" {
+						usedBy := ""
+						if assetType.PreserveShared {
+							usedBy = getAssetUsedBy(assetIDInstance, espXmlmc)
+						}
+						logger(1, "Update Asset: "+assetID, false)
+						updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc)
 					}
-					logger(1, "Update Asset: "+assetID, false)
-					updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc)
 				} else {
-					logger(1, "Create Asset: "+assetID, false)
-					createAsset(assetMap, assetID, espXmlmc)
+					if assetType.OperationType == "" || strings.ToLower(assetType.OperationType) == "both" || strings.ToLower(assetType.OperationType) == "create" {
+						logger(1, "Create Asset: "+assetID, false)
+						createAsset(assetMap, assetID, espXmlmc)
+					}
 				}
 			} else {
 				logger(4, "Asset search API call failed for asset with Unique ID: "+assetID, true)
