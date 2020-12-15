@@ -7,7 +7,7 @@ import (
 )
 
 //----- Constants -----
-const version = "1.10.1"
+const version = "1.11.0"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----
@@ -77,10 +77,13 @@ type sqlImportConfStruct struct {
 }
 
 type assetTypesStruct struct {
-	AssetType       string
-	PreserveShared  bool
-	Query           string
-	AssetIdentifier assetIdentifierStruct
+	AssetType                string
+	PreserveShared           bool
+	PreserveState            bool
+	PreserveSubState         bool
+	PreserveOperationalState bool
+	Query                    string
+	AssetIdentifier          assetIdentifierStruct
 }
 
 type assetIdentifierStruct struct {

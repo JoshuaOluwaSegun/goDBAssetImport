@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.11.0 (December 15th, 2020)
+
+Feature:
+
+- Added support to skip updating state/substate/operational state fields for existing assets
+
 ## 1.10.1 (April 29th, 2020)
 
 Defect Fix:

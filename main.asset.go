@@ -572,6 +572,18 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		value := getFieldValue(k, strMapping, u)
 		debugLog(k, ":", strMapping, ":", value)
 
+		if k == "h_operational_state" && assetType.PreserveOperationalState {
+			continue
+			//Skip updating op state
+		}
+		if k == "h_record_state" && assetType.PreserveState {
+			continue
+			//Skip updating state
+		}
+		if (k == "h_substate_id" || k == "h_substate_name") && assetType.PreserveSubState {
+			continue
+			//Skip updating subState
+		}
 		if k == "h_used_by" && usedByID != "" {
 			if usedByID == "__clear__" {
 				espXmlmc.SetParamAttr("h_used_by", "", nilAttrib)

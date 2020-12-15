@@ -16,6 +16,9 @@
     "AssetTypes": [{
             "AssetType": "Laptop",
             "PreserveShared": false,
+            "PreserveState": false,
+            "PreserveSubState": false,
+            "PreserveOperationalState": false,
             "Query": "WHERE at.AssetTypename = 'Windows' AND os.ProductType = 1 AND ac.Model = 'Latitude E6320'",
             "AssetIdentifier": {
                 "DBColumn": "AssetName",
@@ -26,6 +29,9 @@
         {
             "AssetType": "Desktop",
             "PreserveShared": false,
+            "PreserveState": false,
+            "PreserveSubState": false,
+            "PreserveOperationalState": false,
             "Query": "WHERE (at.AssetTypename = 'Windows' AND os.ProductType = 1 AND ac.Model = 'Precision WorkStation T5500') OR at.AssetTypename = 'Apple Mac'",
             "AssetIdentifier": {
                 "DBColumn": "AssetName",
@@ -36,6 +42,9 @@
         {
             "AssetType": "Server",
             "PreserveShared": false,
+            "PreserveState": false,
+            "PreserveSubState": false,
+            "PreserveOperationalState": false,
             "Query": "WHERE os.ProductType IN (2, 3)",
             "AssetIdentifier": {
                 "DBColumn": "AssetName",

@@ -16,6 +16,9 @@
     "AssetTypes": [{
         "AssetType": "Monitor",
         "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND tblAssetCustom.Custom2 = 'Monitor'",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

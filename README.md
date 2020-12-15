@@ -36,6 +36,9 @@ Example JSON File:
     {
         "AssetType": "Server",
         "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND OASysEncl.ChassisTypes0 IN (2, 17, 18, 19, 20, 21, 22, 23)",
         "AssetIdentifier": {
             "DBColumn": "MachineName",
@@ -46,6 +49,9 @@ Example JSON File:
     {
         "AssetType": "Laptop",
         "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND OASysEncl.ChassisTypes0 IN (8, 9, 10, 14)",
         "AssetIdentifier": {
             "DBColumn": "MachineName",
@@ -56,6 +62,9 @@ Example JSON File:
     {
         "AssetType": "Desktop",
         "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND OASysEncl.ChassisTypes0 IN (3, 4, 5, 6, 7, 12, 13, 15, 16, 17)",
         "AssetIdentifier": {
             "DBColumn": "MachineName",
@@ -66,6 +75,9 @@ Example JSON File:
     {
         "AssetType": "Virtual Machine",
         "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND OASysEncl.ChassisTypes0 = 1",
         "AssetIdentifier": {
             "DBColumn": "MachineName",
@@ -99,15 +111,18 @@ Example JSON File:
       "h_maintenance_cost":"",
       "h_maintenance_ref":"",
       "h_notes":"",
-      "h_operational_state":"",
+      "h_operational_state":"1",
       "h_order_date":"",
       "h_order_number":"",
       "h_owned_by":"[UserName]",
       "h_product_id":"",
       "h_received_date":"",
+      "h_record_state": "1",
       "h_residual_value":"",
       "h_room":"",
       "h_scheduled_retire_date":"",
+      "h_substate_id": "",
+      "h_substate_name": "",
       "h_supplier_id":"",
       "h_supported_by":"",
       "h_used_by":"[UserName]",
@@ -189,6 +204,10 @@ Example JSON File:
 - An array of objects details the asset types to import:
   - AssetType - the Asset Type Name which needs to match a correct Asset Type Name in your Hornbill Instance
   - PreserveShared - If set to true, when updating assets that are Shared, then the Used By fields will not be updated. Defaults to false
+  - PreserveState - If set to true then the State field will not be updated. Defaults to false
+  - PreserveSubState - If set to true then the SubState fields will not be updated. Defaults to false
+  - PreserveOperationalState - If set to true then the Operational State field will not be updated. Defaults to false
+  - PreserveState - If set to true then the State field will not be updated. Defaults to false
   - Query - additional SQL filter to be appended to the Query from SQLConf, to retrieve assets of that asset type.
   - AssetIdentifier - an object containing details to help in the identification of existing asset records in the Hornbill instance. If value in an imported records DBColumn matches the value in the EntityColumn of an asset in Hornbill (within the defined Entity), then the asset record will be updated rather than a new asset being created:
     - DBColumn - specifies the unique identifier column from the database query
