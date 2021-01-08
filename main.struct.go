@@ -7,7 +7,7 @@ import (
 )
 
 //----- Constants -----
-const version = "1.12.0"
+const version = "1.13.0"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----

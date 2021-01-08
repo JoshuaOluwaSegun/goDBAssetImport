@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.13.0 (January 8th, 2021)
+
+Feature:
+
+- When populating User type fields (Owner, Used By, Last Logged On User), we now use the matched User ID from Hornbill when building the corresponding URNs rather than the User ID from the source data to ensure the3 case is correct.
+
 ## 1.12.0 (December 15th, 2020)
 
 Feature:

@@ -228,15 +228,17 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 	ownedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_owned_by"])
 	ownedByID := getFieldValue("h_owned_by", ownedByMapping, u)
 	if ownedByID != "" && ownedByID != "<nil>" && ownedByID != "__clear__" {
-		ownedByIsInCache, ownedByNameCache := customerInCache(ownedByID)
+		ownedByIsInCache, ownedByNameCache, ownedByIDCache := customerInCache(ownedByID)
 		//-- Check if we have cached the customer already
 		if ownedByIsInCache {
 			ownedByName = ownedByNameCache
+			ownedByID = ownedByIDCache
 		} else {
-			ownedByIsOnInstance, ownedByNameInstance := searchCustomer(ownedByID, espXmlmc)
+			ownedByIsOnInstance, ownedByNameInstance, ownedByIDInstance := searchCustomer(ownedByID, espXmlmc)
 			//-- If Returned set output
 			if ownedByIsOnInstance {
 				ownedByName = ownedByNameInstance
+				ownedByID = ownedByIDInstance
 			}
 		}
 	}
@@ -251,15 +253,17 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 	usedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_used_by"])
 	usedByID := getFieldValue("h_used_by", usedByMapping, u)
 	if usedByID != "" && usedByID != "<nil>" && usedByID != "__clear__" {
-		usedByIsInCache, usedByNameCache := customerInCache(usedByID)
+		usedByIsInCache, usedByNameCache, usedByIDCache := customerInCache(usedByID)
 		//-- Check if we have cached the customer already
 		if usedByIsInCache {
 			usedByName = usedByNameCache
+			usedByID = usedByIDCache
 		} else {
-			usedByIsOnInstance, usedByNameInstance := searchCustomer(usedByID, espXmlmc)
+			usedByIsOnInstance, usedByNameInstance, usedByIDInstane := searchCustomer(usedByID, espXmlmc)
 			//-- If Returned set output
 			if usedByIsOnInstance {
 				usedByName = usedByNameInstance
+				usedByID = usedByIDInstane
 			}
 		}
 	}
@@ -274,16 +278,18 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 	lastLoggedOnUserMapping := fmt.Sprintf("%v", SQLImportConf.AssetTypeFieldMapping["h_last_logged_on_user"])
 	lastLoggedOnByID := getFieldValue("h_last_logged_on_user", lastLoggedOnUserMapping, u)
 	if lastLoggedOnUserMapping != "" && lastLoggedOnByID != "" && lastLoggedOnByID != "<nil>" && lastLoggedOnByID != "__clear__" {
-		lastLoggedOnByIsInCache, lastLoggedOnByNameCache := customerInCache(lastLoggedOnByID)
+		lastLoggedOnByIsInCache, lastLoggedOnByNameCache, lastLoggedOnByIDCache := customerInCache(lastLoggedOnByID)
 		//-- Check if we have cached the customer already
 		if lastLoggedOnByIsInCache {
 			lastLoggedOnByName = lastLoggedOnByNameCache
+			lastLoggedOnByID = lastLoggedOnByIDCache
 			lastLoggedOnByURN = "urn:sys:0:" + lastLoggedOnByNameCache + ":" + lastLoggedOnByID
 		} else {
-			lastLoggedOnByIsOnInstance, lastLoggedOnByNameInstance := searchCustomer(lastLoggedOnByID, espXmlmc)
+			lastLoggedOnByIsOnInstance, lastLoggedOnByNameInstance, lastLoggedOnByIDInstance := searchCustomer(lastLoggedOnByID, espXmlmc)
 			//-- If Returned set output
 			if lastLoggedOnByIsOnInstance {
 				lastLoggedOnByName = lastLoggedOnByNameInstance
+				lastLoggedOnByID = lastLoggedOnByIDInstance
 				lastLoggedOnByURN = "urn:sys:0:" + lastLoggedOnByNameInstance + ":" + lastLoggedOnByID
 			}
 		}
@@ -492,15 +498,17 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 	ownedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_owned_by"])
 	ownedByID := getFieldValue("h_owned_by", ownedByMapping, u)
 	if ownedByID != "" && ownedByID != "<nil>" && ownedByID != "__clear__" {
-		ownedByIsInCache, ownedByNameCache := customerInCache(ownedByID)
+		ownedByIsInCache, ownedByNameCache, ownedByIDCache := customerInCache(ownedByID)
 		//-- Check if we have cached the customer already
 		if ownedByIsInCache {
 			ownedByName = ownedByNameCache
+			ownedByID = ownedByIDCache
 		} else {
-			ownedByIsOnInstance, ownedByNameInstance := searchCustomer(ownedByID, espXmlmc)
+			ownedByIsOnInstance, ownedByNameInstance, ownedByIDInstance := searchCustomer(ownedByID, espXmlmc)
 			//-- If Returned set output
 			if ownedByIsOnInstance {
 				ownedByName = ownedByNameInstance
+				ownedByID = ownedByIDInstance
 			}
 		}
 	}
@@ -520,15 +528,17 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		usedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_used_by"])
 		usedByID = getFieldValue("h_used_by", usedByMapping, u)
 		if usedByID != "" && usedByID != "<nil>" && usedByID != "__clear__" {
-			usedByIsInCache, usedByNameCache := customerInCache(usedByID)
+			usedByIsInCache, usedByNameCache, usedByIDCache := customerInCache(usedByID)
 			//-- Check if we have cached the customer already
 			if usedByIsInCache {
 				usedByName = usedByNameCache
+				usedByID = usedByIDCache
 			} else {
-				usedByIsOnInstance, usedByNameInstance := searchCustomer(usedByID, espXmlmc)
+				usedByIsOnInstance, usedByNameInstance, usedByIDInstance := searchCustomer(usedByID, espXmlmc)
 				//-- If Returned set output
 				if usedByIsOnInstance {
 					usedByName = usedByNameInstance
+					usedByID = usedByIDInstance
 				}
 			}
 		}
@@ -544,14 +554,16 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 	lastLoggedOnUserMapping := fmt.Sprintf("%v", SQLImportConf.AssetTypeFieldMapping["h_last_logged_on_user"])
 	lastLoggedOnByID := getFieldValue("h_last_logged_on_user", lastLoggedOnUserMapping, u)
 	if lastLoggedOnUserMapping != "" && lastLoggedOnByID != "" && lastLoggedOnByID != "<nil>" && lastLoggedOnByID != "__clear__" {
-		lastLoggedOnByIsInCache, lastLoggedOnByNameCache := customerInCache(lastLoggedOnByID)
+		lastLoggedOnByIsInCache, lastLoggedOnByNameCache, lastLoggedOnByIDCache := customerInCache(lastLoggedOnByID)
 		//-- Check if we have cached the customer already
 		if lastLoggedOnByIsInCache {
 			lastLoggedOnByName = lastLoggedOnByNameCache
+			lastLoggedOnByID = lastLoggedOnByIDCache
 			lastLoggedOnByURN = "urn:sys:0:" + lastLoggedOnByNameCache + ":" + lastLoggedOnByID
 		} else {
-			lastLoggedOnByIsOnInstance, lastLoggedOnByNameInstance := searchCustomer(lastLoggedOnByID, espXmlmc)
+			lastLoggedOnByIsOnInstance, lastLoggedOnByNameInstance, lastLoggedOnByIDInstance := searchCustomer(lastLoggedOnByID, espXmlmc)
 			lastLoggedOnByName = lastLoggedOnByNameInstance
+			lastLoggedOnByID = lastLoggedOnByIDInstance
 			//-- If Returned set output
 			if lastLoggedOnByIsOnInstance {
 				lastLoggedOnByURN = "urn:sys:0:" + lastLoggedOnByNameInstance + ":" + lastLoggedOnByID
