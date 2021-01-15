@@ -58,7 +58,7 @@ func searchCustomer(custID string, espXmlmc *apiLib.XmlmcInstStruct) (bool, stri
 				boolReturn = true
 				//-- Add Customer to Cache
 				var newCustomerForCache customerListStruct
-				newCustomerForCache.CustomerID = custID
+				newCustomerForCache.CustomerID = xmlRespon.CustomerID
 				newCustomerForCache.CustomerName = xmlRespon.CustomerFirstName + " " + xmlRespon.CustomerLastName
 				custNameReturn = newCustomerForCache.CustomerName
 				custIDReturn = newCustomerForCache.CustomerID

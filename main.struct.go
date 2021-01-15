@@ -7,7 +7,7 @@ import (
 )
 
 //----- Constants -----
-const version = "1.13.0"
+const version = "1.13.1"
 const appServiceManager = "com.hornbill.servicemanager"
 
 //----- Variables -----
@@ -162,6 +162,7 @@ type xmlmcCustomerListResponse struct {
 	MethodResult      string      `xml:"status,attr"`
 	CustomerFirstName string      `xml:"params>firstName"`
 	CustomerLastName  string      `xml:"params>lastName"`
+	CustomerID        string      `xml:"params>customerId"`
 	State             stateStruct `xml:"state"`
 }
 
