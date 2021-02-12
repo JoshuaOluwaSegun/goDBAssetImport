@@ -8,10 +8,9 @@
 - Extract zip into a folder you would like the application to run from e.g. `C:\asset_import\`
 - Open '''conf_sccm_assetscomputer.json''' and add in the necessary configration
 - Open Command Line Prompt as Administrator
-- Change Directory to the folder with goDBAssetImport_x64.exe `C:\asset_import\`
+- Change Directory to the folder with goDBAssetImport.exe `C:\asset_import\`
 - Run the command :
-  - For Windows 32bit Systems: goDBAssetImport_x86.exe -dryrun=true -file=conf_sccm_assetscomputer.json
-  - For Windows 64bit Systems: goDBAssetImport_x64.exe -dryrun=true -file=conf_sccm_assetscomputer.json
+  - For Windows Systems: goDBAssetImport.exe -dryrun=true -file=conf_sccm_assetscomputer.json
 
 ### Configuration
 
@@ -36,6 +35,11 @@ Example JSON File:
   "AssetTypes": [
     {
         "AssetType": "Server",
+        "OperationType": "Both",
+        "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND OASysEncl.ChassisTypes0 IN (2, 17, 18, 19, 20, 21, 22, 23)",
         "AssetIdentifier": {
             "DBColumn": "MachineName",
@@ -45,6 +49,11 @@ Example JSON File:
     },
     {
         "AssetType": "Laptop",
+        "OperationType": "Create",
+        "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND OASysEncl.ChassisTypes0 IN (8, 9, 10, 14)",
         "AssetIdentifier": {
             "DBColumn": "MachineName",
@@ -54,6 +63,11 @@ Example JSON File:
     },
     {
         "AssetType": "Desktop",
+        "OperationType": "Update", 
+        "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND OASysEncl.ChassisTypes0 IN (3, 4, 5, 6, 7, 12, 13, 15, 16, 17)",
         "AssetIdentifier": {
             "DBColumn": "MachineName",
@@ -63,6 +77,11 @@ Example JSON File:
     },
     {
         "AssetType": "Virtual Machine",
+        "OperationType": "Both",
+        "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND OASysEncl.ChassisTypes0 = 1",
         "AssetIdentifier": {
             "DBColumn": "MachineName",
@@ -96,15 +115,18 @@ Example JSON File:
       "h_maintenance_cost":"",
       "h_maintenance_ref":"",
       "h_notes":"",
-      "h_operational_state":"",
+      "h_operational_state":"1",
       "h_order_date":"",
       "h_order_number":"",
       "h_owned_by":"[UserName]",
       "h_product_id":"",
       "h_received_date":"",
+      "h_record_state": "1",
       "h_residual_value":"",
       "h_room":"",
       "h_scheduled_retire_date":"",
+      "h_substate_id": "",
+      "h_substate_name": "",
       "h_supplier_id":"",
       "h_supported_by":"",
       "h_used_by":"[UserName]",
@@ -185,6 +207,11 @@ Example JSON File:
 
 - An array of objects details the asset types to import:
   - AssetType - the Asset Type Name which needs to match a correct Asset Type Name in your Hornbill Instance
+  - OperationType - The type of operation that should be performed on discovered assets - can be Create, Update or Both. Defaults to Both if no value is provided
+  - PreserveShared - If set to true, when updating assets that are Shared, then the Used By fields will not be updated. Defaults to false
+  - PreserveState - If set to true then the State field will not be updated. Defaults to false
+  - PreserveSubState - If set to true then the SubState fields will not be updated. Defaults to false
+  - PreserveOperationalState - If set to true then the Operational State field will not be updated. Defaults to false
   - Query - additional SQL filter to be appended to the Query from SQLConf, to retrieve assets of that asset type.
   - AssetIdentifier - an object containing details to help in the identification of existing asset records in the Hornbill instance. If value in an imported records DBColumn matches the value in the EntityColumn of an asset in Hornbill (within the defined Entity), then the asset record will be updated rather than a new asset being created:
     - DBColumn - specifies the unique identifier column from the database query
@@ -195,6 +222,7 @@ Example JSON File:
 
 - Maps data in to the generic Asset record
 - Any value wrapped with [] will be populated with the corresponding response from the SQL Query
+- Providing a value of `__clear__` will NULL that column for the record in the database when assets are being updated ONLY. This can either be hard-coded in the config, or sent as a string column within the SQL query resultset (`SELECT '__clear__' AS clearColumn` in the query and `[clearColumn]` in the mapping for example)
 - Any Other Value is treated literally as written example:
   - "h_name":"[MachineName]", - the value of MachineName is taken from the SQL output and populated within this field
   - "h_description":"This is a description", - the value of "h_description" would be populated with "This is a description" for ALL imported assets
@@ -216,21 +244,22 @@ Command Line Parameters
 - file - Defaults to `conf.json` - Name of the Configuration file to load
 - dryrun - Defaults to `false` - Set to True and the XMLMC for Create and Update assets will not be called and instead the XML will be dumped to the log file, this is to aid in debugging the initial connection information.
 - concurrent - defaults to `1`. This is to specify the number of assets that should be imported concurrently, and can be an integer between 1 and 10 (inclusive). 1 is the slowest level of import, but does not affect performance of your Hornbill instance, and 10 will process the import much more quickly but could affect instance performance while the import is running.
+- debug - defaults to `false` = Set to true to enable debug mode, which will output debugging information to the log
 
 ## Testing
 
 If you run the application with the argument dryrun=true then no assets will be created or updated, the XML used to create or update will be saved in the log file so you can ensure the data mappings are correct before running the import.
 
-'goDBAssetImport_x64.exe -dryrun=true'
+'goDBAssetImport.exe -dryrun=true'
 
 ## Scheduling
 
 ### Windows
 
-You can schedule goDBAssetImport_x64.exe to run with any optional command line argument from Windows Task Scheduler:
+You can schedule goDBAssetImport.exe to run with any optional command line argument from Windows Task Scheduler:
 
-- Ensure the user account running the task has rights to goDBAssetImport_x64.exe and the containing folder.
-- Make sure the Start In parameter contains the folder where goDBAssetImport_x64.exe resides in otherwise it will not be able to pick up the correct path.
+- Ensure the user account running the task has rights to goDBAssetImport.exe and the containing folder.
+- Make sure the Start In parameter contains the folder where goDBAssetImport.exe resides in otherwise it will not be able to pick up the correct path.
 
 ## Logging
 

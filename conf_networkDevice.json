@@ -15,6 +15,11 @@
     },
     "AssetTypes": [{
         "AssetType": "Network Device",
+        "OperationType": "Both",
+        "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
         "Query": "AND tblAssetCustom.Custom2 = 'Network Device''",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

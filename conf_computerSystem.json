@@ -15,16 +15,29 @@
     },
     "AssetTypes": [{
             "AssetType": "Server",
+            "OperationType": "Both",
             "Query": "",
+            "PreserveShared": false,
+            "PreserveState": false,
+            "PreserveSubState": false,
+            "PreserveOperationalState": false,
             "AssetIdentifier": {
                 "DBColumn": "SystemSerialNumber",
                 "Entity": "AssetsComputer",
                 "EntityColumn": "h_serial_number"
-            }
+            },
+            "SharedWith": [
+               
+            ]
         },
         {
             "AssetType": "Laptop",
+            "OperationType": "Both",
             "Query": "",
+            "PreserveShared": false,
+            "PreserveState": false,
+            "PreserveSubState": false,
+            "PreserveOperationalState": false,
             "AssetIdentifier": {
                 "DBColumn": "MachineName",
                 "Entity": "Asset",
@@ -33,7 +46,12 @@
         },
         {
             "AssetType": "Desktop",
+            "OperationType": "Both",
             "Query": "",
+            "PreserveShared": false,
+            "PreserveState": false,
+            "PreserveSubState": false,
+            "PreserveOperationalState": false,
             "AssetIdentifier": {
                 "DBColumn": "",
                 "Entity": "",
@@ -42,7 +60,12 @@
         },
         {
             "AssetType": "Virtual Machine",
+            "OperationType": "Both",
             "Query": "",
+            "PreserveShared": false,
+            "PreserveState": false,
+            "PreserveSubState": false,
+            "PreserveOperationalState": false,
             "AssetIdentifier": {
                 "DBColumn": "",
                 "Entity": "",

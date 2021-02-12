@@ -3,31 +3,35 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
+	"strings"
 
-	"github.com/hornbill/goApiLib"
+	apiLib "github.com/hornbill/goApiLib"
 )
 
 // customerInCache -- Function to check if passed-thorugh Customer ID has been cached
 // if so, pass back the Customer Name
-func customerInCache(customerID string) (bool, string) {
+func customerInCache(customerID string) (bool, string, string) {
 	boolReturn := false
-	strReturn := ""
+	customerName := ""
+	customerIDReturn := ""
 	mutexCustomers.Lock()
 	//-- Check if in Cache
 	for _, customer := range Customers {
-		if customer.CustomerID == customerID {
+		if strings.EqualFold(customer.CustomerID, customerID) {
 			boolReturn = true
-			strReturn = customer.CustomerName
+			customerName = customer.CustomerName
+			customerIDReturn = customer.CustomerID
 		}
 	}
 	mutexCustomers.Unlock()
-	return boolReturn, strReturn
+	return boolReturn, customerName, customerIDReturn
 }
 
 // seachSite -- Function to check if passed-through  site  name is on the instance
-func searchCustomer(custID string, espXmlmc *apiLib.XmlmcInstStruct) (bool, string) {
+func searchCustomer(custID string, espXmlmc *apiLib.XmlmcInstStruct) (bool, string, string) {
 	boolReturn := false
-	strReturn := ""
+	custNameReturn := ""
+	custIDReturn := ""
 	//Get Analyst Info
 	espXmlmc.SetParam("customerId", custID)
 	espXmlmc.SetParam("customerType", "0")
@@ -54,9 +58,10 @@ func searchCustomer(custID string, espXmlmc *apiLib.XmlmcInstStruct) (bool, stri
 				boolReturn = true
 				//-- Add Customer to Cache
 				var newCustomerForCache customerListStruct
-				newCustomerForCache.CustomerID = custID
+				newCustomerForCache.CustomerID = xmlRespon.CustomerID
 				newCustomerForCache.CustomerName = xmlRespon.CustomerFirstName + " " + xmlRespon.CustomerLastName
-				strReturn = newCustomerForCache.CustomerName
+				custNameReturn = newCustomerForCache.CustomerName
+				custIDReturn = newCustomerForCache.CustomerID
 				customerNamedMap := []customerListStruct{newCustomerForCache}
 				mutexCustomers.Lock()
 				Customers = append(Customers, customerNamedMap...)
@@ -64,5 +69,5 @@ func searchCustomer(custID string, espXmlmc *apiLib.XmlmcInstStruct) (bool, stri
 			}
 		}
 	}
-	return boolReturn, strReturn
+	return boolReturn, custNameReturn, custIDReturn
 }
