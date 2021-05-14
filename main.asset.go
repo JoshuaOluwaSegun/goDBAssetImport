@@ -52,6 +52,9 @@ func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruc
 	//Get the identity of the AssetID field from the config
 	assetIDIdent := fmt.Sprintf("%v", assetType.AssetIdentifier.DBColumn)
 	debugLog("Asset Identifier:", assetType.AssetIdentifier.Entity, assetType.AssetIdentifier.EntityColumn, assetType.AssetIdentifier.DBColumn, assetIDIdent)
+	blnContractConnect := supplierManagerInstalled() && assetType.AssetIdentifier.DBContractColumn != ""
+	blnSupplierConnect := supplierManagerInstalled() && assetType.AssetIdentifier.DBSupplierColumn != ""
+	blnCMInPolicy := configManagerInstalled() && assetType.AssetIdentifier.DBInPolicyColumn != ""
 	//-- Loop each asset
 	maxGoroutinesGuard := make(chan struct{}, maxGoroutines)
 
@@ -60,6 +63,8 @@ func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruc
 		worker.Add(1)
 		assetMap := assetRecord
 		//Get the asset ID for the current record
+		assetID := getFieldFromDB(assetIDIdent, assetMap)
+		/*
 		interfaceContent := assetMap[assetIDIdent]
 		var assetID string
 		switch v := interfaceContent.(type) {
@@ -68,7 +73,7 @@ func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruc
 		default:
 			assetID = fmt.Sprintf("%v", assetMap[assetIDIdent])
 		}
-
+		*/
 		debugLog("Asset ID:", assetID)
 
 		espXmlmc := apiLib.NewXmlmcInstance(SQLImportConf.InstanceID)
@@ -83,6 +88,7 @@ func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruc
 			var boolUpdate = false
 			boolUpdate, searchSuccess, assetIDInstance := getAssetID(assetID, assetType.AssetIdentifier, espXmlmc)
 			debugLog("assetIDInstance:", assetIDInstance)
+			var boolActioned = false
 			//-- Update or Create Asset
 			if searchSuccess {
 				if boolUpdate {
@@ -93,13 +99,37 @@ func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruc
 						}
 						logger(1, "Update Asset: "+assetID, false)
 						updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc)
+						boolActioned = true
 					}
 				} else {
 					if assetType.OperationType == "" || strings.ToLower(assetType.OperationType) == "both" || strings.ToLower(assetType.OperationType) == "create" {
 						logger(1, "Create Asset: "+assetID, false)
-						createAsset(assetMap, assetID, espXmlmc)
+						assetIDInstance = createAsset(assetMap, assetID, espXmlmc)
+						boolActioned = true
 					}
 				}
+				// additional stuff
+				if boolActioned && assetIDInstance != "" {
+					if blnContractConnect {
+						contractId := getFieldFromDB(assetType.AssetIdentifier.DBContractColumn, assetMap)
+						if contractId != "" {
+							addContract(assetIDInstance, contractId, espXmlmc)
+						}
+					}
+					if blnSupplierConnect {
+						supplierId := getFieldFromDB(assetType.AssetIdentifier.DBSupplierColumn, assetMap)
+						if supplierId != "" {
+							connectSupplier(assetIDInstance, supplierId, espXmlmc)
+						}
+					}
+					if blnCMInPolicy {
+						inPolicy := getFieldFromDB(assetType.AssetIdentifier.DBInPolicyColumn, assetMap)
+						if inPolicy == "1" {
+							addInPolicy(assetIDInstance, espXmlmc)
+						}
+					}
+				}
+
 			} else {
 				logger(4, "Asset search API call failed for asset with Unique ID: "+assetID, true)
 			}
@@ -185,7 +215,7 @@ func getAssetID(assetID string, assetIdentifier assetIdentifierStruct, espXmlmc 
 }
 
 // createAsset -- Creates Asset record from the passed through map data
-func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLib.XmlmcInstStruct) {
+func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLib.XmlmcInstStruct) string {
 	//Get site ID
 	siteID := ""
 	siteNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_site"])
@@ -221,6 +251,22 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 		}
 	}
 	debugLog("Company Mapping:", companyNameMapping, ":", companyName, ":", companyID)
+	//Get Department ID
+	departmentID := ""
+	departmentNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_department_name"])
+	departmentName := getFieldValue("h_department_name", departmentNameMapping, u)
+	if departmentName != "" && departmentName != "<nil>" && departmentName != "__clear__" {
+		departmentIsInCache, DepartmentIDCache := groupInCache(departmentName, 2)
+		if departmentIsInCache {
+			departmentID = DepartmentIDCache
+		} else {
+			departmentIsOnInstance, DepartmentIDInstance := searchGroup(departmentName, 2, espXmlmc)
+			if departmentIsOnInstance {
+				departmentID = DepartmentIDInstance
+			}
+		}
+	}
+	debugLog("Department Mapping:", departmentNameMapping, ":", departmentName, ":", departmentID)
 
 	//Get Owned By name
 	ownedByName := ""
@@ -299,6 +345,7 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 	//Get/Set params from map stored against FieldMapping
 	espXmlmc.SetParam("application", appServiceManager)
 	espXmlmc.SetParam("entity", "Asset")
+	//espXmlmc.SetParam("returnModifiedData", "false")
 	espXmlmc.SetParam("returnModifiedData", "true")
 	espXmlmc.OpenElement("primaryEntityData")
 	espXmlmc.OpenElement("record")
@@ -334,10 +381,15 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 			espXmlmc.SetParam("h_company_name", companyName)
 			espXmlmc.SetParam("h_company_id", companyID)
 		}
+		if k == "h_department_name" && departmentID != "" && departmentName != "" {
+			espXmlmc.SetParam("h_department_name", departmentName)
+			espXmlmc.SetParam("h_department_id", departmentID)
+		}
 		if k != "h_site" &&
 			k != "h_used_by" &&
 			k != "h_owned_by" &&
 			k != "h_company_name" &&
+			k != "h_department_name" &&
 			strMapping != "" && value != "" {
 			espXmlmc.SetParam(k, value)
 
@@ -380,8 +432,9 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 		if xmlmcErr != nil {
 			logger(4, "Error running entityAddRecord API for createAsset:"+fmt.Sprintf("%v", xmlmcErr), false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
-			return
+			return ""
 		}
+		//var xmlRespon xmlmcCreateResponse
 		var xmlRespon xmlmcUpdateResponse
 		debugLog("API Call Response:", XMLCreate)
 		err := xml.Unmarshal([]byte(XMLCreate), &xmlRespon)
@@ -391,7 +444,7 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 			mutexCounters.Unlock()
 			logger(4, "Unable to read response from Hornbill instance from entityAddRecord API for createAsset:"+fmt.Sprintf("%v", err), false)
 			logger(1, "API Call XML: "+XMLSTRING, false)
-			return
+			return ""
 		}
 		if xmlRespon.MethodResult != "ok" {
 			logger(3, "Unable to add asset: "+xmlRespon.State.ErrorRet, false)
@@ -403,6 +456,7 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 			mutexCounters.Lock()
 			counters.created++
 			mutexCounters.Unlock()
+			//assetID := xmlRespon.PrimaryKeyValue
 			assetID := xmlRespon.UpdatedCols.AssetPK
 			assets[strNewAssetID] = assetID
 			//Now add asset URN
@@ -418,21 +472,21 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 			XMLUpdate, xmlmcErr := espXmlmc.Invoke("data", "entityUpdateRecord")
 			if xmlmcErr != nil {
 				logger(4, "API Call failed when Updating Asset URN:"+fmt.Sprintf("%v", xmlmcErr), false)
-				return
+				return ""
 			}
 			var xmlRespon xmlmcResponse
 
 			err := xml.Unmarshal([]byte(XMLUpdate), &xmlRespon)
 			if err != nil {
 				logger(4, "Unable to read response from Hornbill instance when Updating Asset URN:"+fmt.Sprintf("%v", err), false)
-				return
+				return ""
 			}
 			if xmlRespon.MethodResult != "ok" {
 				logger(3, "Unable to update Asset URN: "+xmlRespon.State.ErrorRet, false)
 				logger(1, "API Call XML: "+XMLSTRING, false)
-				return
+				return ""
 			}
-			return
+			return assetID
 		}
 	} else {
 		//-- DEBUG XML TO LOG FILE
@@ -443,6 +497,7 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 		mutexCounters.Unlock()
 		espXmlmc.ClearParam()
 	}
+	return ""
 }
 
 // updateAsset -- Updates Asset record from the passed through map data and asset ID
@@ -491,6 +546,22 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		}
 	}
 	debugLog("Company Mapping:", companyNameMapping, ":", companyName, ":", companyID)
+	//Get Department ID
+	departmentID := ""
+	departmentNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_department_name"])
+	departmentName := getFieldValue("h_department_name", departmentNameMapping, u)
+	if departmentName != "" && departmentName != "<nil>" && departmentName != "__clear__" {
+		departmentIsInCache, DepartmentIDCache := groupInCache(departmentName, 5)
+		if departmentIsInCache {
+			departmentID = DepartmentIDCache
+		} else {
+			departmentIsOnInstance, DepartmentIDInstance := searchGroup(departmentName, 5, espXmlmc)
+			if departmentIsOnInstance {
+				departmentID = DepartmentIDInstance
+			}
+		}
+	}
+	debugLog("Department Mapping:", departmentNameMapping, ":", departmentName, ":", departmentID)
 
 	//Get Owned By name
 	ownedByName := ""
@@ -638,6 +709,16 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 			} else if companyID != "" {
 				espXmlmc.SetParam("h_company_name", companyName)
 				espXmlmc.SetParam("h_company_id", companyID)
+			}
+			continue
+		}
+		if k == "h_department_name" && departmentName != "" {
+			if departmentName == "__clear__" {
+				espXmlmc.SetParamAttr("h_department_name", "", nilAttrib)
+				espXmlmc.SetParamAttr("h_department_id", "", nilAttrib)
+			} else if departmentID != "" {
+				espXmlmc.SetParam("h_department_name", departmentName)
+				espXmlmc.SetParam("h_department_id", departmentID)
 			}
 			continue
 		}
