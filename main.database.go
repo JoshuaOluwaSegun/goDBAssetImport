@@ -117,3 +117,16 @@ func queryDatabase(sqlAppend, assetTypeName string) (bool, []map[string]interfac
 	logger(3, "[DATABASE] "+strconv.Itoa(intAssetSuccess)+" of "+strconv.Itoa(intAssetCount)+" returned assets successfully retrieved ready for processing.", true)
 	return true, ArrAssetMaps
 }
+
+func getFieldFromDB(assetIDIdent string, assetMap map[string]interface{}) string {
+	//Get the asset ID for the current record
+	interfaceContent := assetMap[assetIDIdent]
+	var assetID string
+	switch v := interfaceContent.(type) {
+	case []uint8:
+		assetID = string(v)
+	default:
+		assetID = fmt.Sprintf("%v", assetMap[assetIDIdent])
+	}
+	return assetID
+}

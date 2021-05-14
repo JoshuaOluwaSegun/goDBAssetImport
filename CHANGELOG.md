@@ -1,6 +1,27 @@
 # CHANGELOG
 
-##Â 1.13.1 (January 15th, 2021)
+## 1.15.0 (May 14th, 2021)
+
+Features:
+- Departments are now mapped (if h_department_name is set - h_department_id will be set behind the scenes) - this now matches the behaviour of organisations (the h_company_name field)
+- Ability to specific the Hornbill User ID column for matching users (HornbillUserIDColumn; options: h_user_id (default), h_employee_id, h_email, h_name, h_attrib_1 & h_login_id) - please note that last logged on, owned by and used by will use the same field - i.e. one can NOT specify which column to match to individually.
+
+Changes:
+- Front-loading of groups (organisations & departments) - to prevent search for each asset
+- Front-loading of Sites - to prevent search for each asset
+- If no Asset ID is specified the record will be skipped - instead of activating a search for the asset (to check whether the asset has already been created)
+
+Fixes:
+- Possible fix whereby h_asset_urn was not populated correctly
+- Optimisation added such that front-loading is not happening if the associated fields are not actually configured.
+
+## 1.14.0 (May 5th, 2021)
+
+Fix:
+
+- Fixed issue with generating user URNs on Asset Creation
+
+## 1.13.1 (January 15th, 2021)
 
 Fix:
 
@@ -12,13 +33,13 @@ Feature:
 
 - When populating User type fields (Owner, Used By, Last Logged On User), we now use the matched User ID from Hornbill when building the corresponding URNs rather than the User ID from the source data to ensure the case is correct.
 
-##Â 1.12.0 (December 15th, 2020)
+## 1.12.0 (December 15th, 2020)
 
 Feature:
 
 - Added support to allow for asset types being imported to be restricted to Create/Update/Both operations
 
-##Â 1.11.0 (December 15th, 2020)
+## 1.11.0 (December 15th, 2020)
 
 Feature:
 
@@ -30,13 +51,13 @@ Defect Fix:
 
 - Fixed asset identifier character encoding issue when assets are queried from ODBC
 
-##Â 1.10.0 (April 23rd, 2020)
+## 1.10.0 (April 23rd, 2020)
 
 Change:
 
 - Added support to skip updating asset user when asset is shared
 
-##Â 1.9.1 (April 16th, 2020)
+## 1.9.1 (April 16th, 2020)
 
 Change:
 

@@ -75,6 +75,59 @@ func main() {
 		SQLImportConf.SQLConf.Driver = "mysql320"
 	}
 
+	SQLImportConf.HornbillUserIDColumn = strings.ToLower(SQLImportConf.HornbillUserIDColumn)
+	initXMLMC()
+
+	//only load if any of the user colums are set
+	blnHasUserConfigured := false
+	if val, ok := SQLImportConf.AssetGenericFieldMapping["h_owned_by"]; ok {
+		if val != "" {
+			blnHasUserConfigured = true
+		}
+	}
+	if val, ok := SQLImportConf.AssetGenericFieldMapping["h_used_by"]; ok {
+		if val != "" {
+			blnHasUserConfigured = true
+		}
+	}
+	if val, ok := SQLImportConf.AssetTypeFieldMapping["h_last_logged_on_user"]; ok {
+		if val != "" {
+			blnHasUserConfigured = true
+		}
+	}
+
+	SQLImportConf.HornbillUserIDColumn = strings.ToLower(SQLImportConf.HornbillUserIDColumn)
+	//	if SQLImportConf.HornbillUserIDColumn == "" {
+	//		logger(1, "ID column set, so bringing in all users", false)
+	if blnHasUserConfigured {
+		loadUsers()
+	}
+	//	}
+
+	//only load if site colum is configured
+	if val, ok := SQLImportConf.AssetGenericFieldMapping["h_site"]; ok {
+		if val != "" {
+			loadSites()
+		}
+	}
+
+	var queryGroups []string
+	if val, ok := SQLImportConf.AssetGenericFieldMapping["h_company_name"]; ok {
+		if val != "" {
+			queryGroups = append(queryGroups, "company")
+		}
+	}
+	if val, ok := SQLImportConf.AssetGenericFieldMapping["h_department_name"]; ok {
+		if val != "" {
+			queryGroups = append(queryGroups, "department")
+		}
+	}
+	//	queryGroups[0] = "company"
+	if len(queryGroups) > 0 {
+		loadGroups(queryGroups)
+	}
+	getApplications()
+
 	//Get asset types, process accordingly
 	BaseSQLQuery = SQLImportConf.SQLConf.Query
 	for _, v := range SQLImportConf.AssetTypes {
