@@ -236,6 +236,11 @@ Example JSON File:
     - DBColumn - specifies the unique identifier column from the database query
     - Entity - the Hornbill entity where data is stored
     - EntityColumn - specifies the unique identifier column from the Hornbill entity
+  - SoftwareInventory - an object containing details pertaining to the import of software inventory records for the specified asset type:
+    - AssetIDColumn - the column from the asset type query that contains its primary key
+    - AppIDColumn - the column from the Software Inventory that holds the software unique ID
+    - Query - the query that will be run per asset, to return its software invemtory records. {{AssetID}} in the query will be replaced by each assets primary key value, whose column is defined in the AssetIDColumn property
+    - Mapping - maps data into the software invemtory records   
 
 #### AssetGenericFieldMapping
 
