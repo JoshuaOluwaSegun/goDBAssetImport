@@ -33,62 +33,81 @@ Example JSON File:
       "Query": "SELECT OARSys.ResourceID AS [AssetID], OARSys.User_Name0 AS [UserName], OARSys.Netbios_Name0 AS [MachineName], OARSys.Resource_Domain_OR_Workgr0 AS [NETDomain], dbo.v_GS_OPERATING_SYSTEM.Caption0 AS [OperatingSystemCaption], OARSys.Operating_System_Name_and0 AS [OperatingSystem], dbo.v_GS_OPERATING_SYSTEM.Version0 AS [OperatingSystemVersion], dbo.v_GS_OPERATING_SYSTEM.CSDVersion0 AS [ServicePackVersion], dbo.v_GS_COMPUTER_SYSTEM.Manufacturer0 AS [SystemManufacturer], dbo.v_GS_COMPUTER_SYSTEM.Model0 AS [SystemModel], dbo.v_GS_PC_BIOS.SerialNumber0 AS [SystemSerialNumber], OAProc.MaxClockSpeed0 AS [ProcessorSpeedGHz], OAProc.Name0 AS [ProcessorName], dbo.v_GS_COMPUTER_SYSTEM.NumberOfProcessors0 AS [NumberofProcessors], dbo.v_GS_X86_PC_MEMORY.TotalPhysicalMemory0 AS [MemoryKB], dbo.v_GS_LOGICAL_DISK.Size0 AS [DiskSpaceMB], dbo.v_GS_LOGICAL_DISK.FreeSpace0 AS [FreeDiskSpaceMB], OAIP.IP_Addresses0 AS [IPAddress], OAMac.MAC_Addresses0 AS [MACAddress], dbo.v_GS_PC_BIOS.Description0 AS [BIOSDescription], dbo.v_GS_PC_BIOS.ReleaseDate0 AS [BIOSReleaseDate], dbo.v_GS_PC_BIOS.SMBIOSBIOSVersion0 AS [SMBIOSVersion], dbo.v_GS_SYSTEM.SystemRole0 AS [SystemType], OASysEncl.ChassisTypes0 AS [ChassisTypes], OASysEncl.TimeStamp AS [ChassisDate], OARSys.AD_Site_Name0 AS [SiteName] FROM dbo.v_R_System OUTER APPLY (SELECT TOP 1 * FROM dbo.v_R_System b WHERE b.Netbios_Name0 = dbo.v_R_System.Netbios_Name0 ORDER BY SMS_UUID_Change_Date0 DESC) OARSys OUTER APPLY (SELECT TOP 1 dbo.v_GS_SYSTEM_ENCLOSURE.* FROM dbo.v_GS_SYSTEM_ENCLOSURE WHERE dbo.v_GS_SYSTEM_ENCLOSURE.ResourceID = dbo.v_R_System.ResourceID ORDER BY TimeStamp DESC) OASysEncl OUTER APPLY (SELECT TOP 1 IP_Addresses0, ROW_NUMBER() OVER (order by (SELECT 0)) AS rowNum FROM dbo.v_RA_System_IPAddresses WHERE dbo.v_RA_System_IPAddresses.ResourceID = dbo.v_R_System.ResourceID ORDER BY rowNum DESC) OAIP OUTER APPLY (SELECT TOP 1 MAC_Addresses0 FROM dbo.v_RA_System_MACAddresses WHERE dbo.v_RA_System_MACAddresses.ResourceID = dbo.v_R_System.ResourceID ) OAMac OUTER APPLY (SELECT TOP 1 MaxClockSpeed0, Name0 FROM dbo.v_GS_PROCESSOR WHERE dbo.v_GS_PROCESSOR.ResourceID = dbo.v_R_System.ResourceID ORDER BY TimeStamp DESC) OAProc LEFT JOIN dbo.v_GS_X86_PC_MEMORY ON dbo.v_GS_X86_PC_MEMORY.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_OPERATING_SYSTEM ON dbo.v_GS_OPERATING_SYSTEM.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_COMPUTER_SYSTEM ON dbo.v_GS_COMPUTER_SYSTEM.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_PC_BIOS ON dbo.v_GS_PC_BIOS.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_GS_LOGICAL_DISK ON dbo.v_GS_LOGICAL_DISK.ResourceID = dbo.v_R_System.ResourceID LEFT JOIN dbo.v_FullCollectionMembership ON (dbo.v_FullCollectionMembership.ResourceID = v_R_System.ResourceID) LEFT JOIN dbo.v_GS_SYSTEM ON dbo.v_GS_SYSTEM.ResourceID = dbo.v_R_System.ResourceID WHERE dbo.v_GS_LOGICAL_DISK.DeviceID0 = 'C:' AND dbo.v_FullCollectionMembership.CollectionID = 'SMS00001' "
   },
   "AssetTypes": [
-    {
-        "AssetType": "Server",
-        "OperationType": "Both",
-        "PreserveShared": false,
-        "PreserveState": false,
-        "PreserveSubState": false,
-        "PreserveOperationalState": false,
-        "Query": "AND OASysEncl.ChassisTypes0 IN (2, 17, 18, 19, 20, 21, 22, 23)",
-        "AssetIdentifier": {
-            "DBColumn": "MachineName",
-            "Entity": "Asset",
-            "EntityColumn": "h_name"
-        }
-    },
-    {
-        "AssetType": "Laptop",
-        "OperationType": "Create",
-        "PreserveShared": false,
-        "PreserveState": false,
-        "PreserveSubState": false,
-        "PreserveOperationalState": false,
-        "Query": "AND OASysEncl.ChassisTypes0 IN (8, 9, 10, 14)",
-        "AssetIdentifier": {
-            "DBColumn": "MachineName",
-            "Entity": "Asset",
-            "EntityColumn": "h_name"
-        }
-    },
-    {
-        "AssetType": "Desktop",
-        "OperationType": "Update", 
-        "PreserveShared": false,
-        "PreserveState": false,
-        "PreserveSubState": false,
-        "PreserveOperationalState": false,
-        "Query": "AND OASysEncl.ChassisTypes0 IN (3, 4, 5, 6, 7, 12, 13, 15, 16, 17)",
-        "AssetIdentifier": {
-            "DBColumn": "MachineName",
-            "Entity": "Asset",
-            "EntityColumn": "h_name"
-        }
-    },
-    {
-        "AssetType": "Virtual Machine",
-        "OperationType": "Both",
-        "PreserveShared": false,
-        "PreserveState": false,
-        "PreserveSubState": false,
-        "PreserveOperationalState": false,
-        "Query": "AND OASysEncl.ChassisTypes0 = 1",
-        "AssetIdentifier": {
-            "DBColumn": "MachineName",
-            "Entity": "Asset",
-            "EntityColumn": "h_name"
-        }
-    }
+      {
+          "AssetType": "Server",
+          "OperationType": "Both",
+          "PreserveShared": false,
+          "Query": "AND OASysEncl.ChassisTypes0 IN (2, 17, 18, 19, 20, 21, 22, 23) AND dbo.v_R_System.Obsolete0 = 0 ORDER BY dbo.v_R_System.ResourceID ASC",
+          "AssetIdentifier": {
+              "DBColumn": "MachineName",
+              "Entity": "Asset",
+              "EntityColumn": "h_name"
+          },
+          "SoftwareInventory": {
+              "AssetIDColumn": "AssetID",
+              "AppIDColumn": "AppID",
+              "Query": "SELECT AppID = CASE WHEN Publisher0 IS NULL AND Version0 IS NULL THEN DisplayName0 WHEN Publisher0 IS NOT NULL AND Version0 IS NULL THEN Publisher0+DisplayName0 ELSE Publisher0+DisplayName0+Version0 END, DisplayName0 , Version0, FCM.Name, convert(datetime, InstallDate0, 112) AS InstallDate0, Publisher0, ProdID0, FCM.ResourceID FROM v_Add_Remove_Programs AS ARP JOIN v_FullCollectionMembership As FCM on ARP.ResourceID=FCM.ResourceID WHERE FCM.CollectionID = 'SMS00001' AND FCM.ResourceID = '{{AssetID}}' AND DisplayName0 IS NOT NULL AND DisplayName0 != '' AND DisplayName0 NOT LIKE '%Update for Windows%' ORDER BY ProdID0 ASC",
+              "Mapping": {
+                  "h_app_id":"[AppID]",
+                  "h_app_name": "[DisplayName0]",
+                  "h_app_vendor":"[Publisher0]",
+                  "h_app_version":"[Version0]",
+                  "h_app_install_date":"[InstallDate0]",
+                  "h_app_help":"",
+                  "h_app_info":""
+              }
+          }
+      },
+      {
+          "AssetType": "Virtual Machine",
+          "OperationType": "Both",
+          "PreserveShared": false,
+          "Query": "AND OASysEncl.ChassisTypes0 = 1 AND dbo.v_R_System.Obsolete0 = 0 ORDER BY dbo.v_R_System.ResourceID ASC",
+          "AssetIdentifier": {
+              "DBColumn": "MachineName",
+              "Entity": "Asset",
+              "EntityColumn": "h_name"
+          },
+          "SoftwareInventory": {
+              "AssetIDColumn": "AssetID",
+              "AppIDColumn": "AppID",
+              "Query": "SELECT AppID = CASE WHEN Publisher0 IS NULL AND Version0 IS NULL THEN DisplayName0 WHEN Publisher0 IS NOT NULL AND Version0 IS NULL THEN Publisher0+DisplayName0 ELSE Publisher0+DisplayName0+Version0 END, DisplayName0 , Version0, FCM.Name, convert(datetime, InstallDate0, 112) AS InstallDate0, Publisher0, ProdID0, FCM.ResourceID FROM v_Add_Remove_Programs AS ARP JOIN v_FullCollectionMembership As FCM on ARP.ResourceID=FCM.ResourceID WHERE FCM.CollectionID = 'SMS00001' AND FCM.ResourceID = '{{AssetID}}' AND DisplayName0 IS NOT NULL AND DisplayName0 != '' AND DisplayName0 NOT LIKE '%Update for Windows%' ORDER BY ProdID0 ASC",
+              "Mapping": {
+                  "h_app_id":"[AppID]",
+                  "h_app_name": "[DisplayName0]",
+                  "h_app_vendor":"[Publisher0]",
+                  "h_app_version":"[Version0]",
+                  "h_app_install_date":"[InstallDate0]",
+                  "h_app_help":"",
+                  "h_app_info":""
+              }
+          }
+      },
+      {
+          "AssetType": "Laptop",
+          "OperationType": "Both",
+          "PreserveShared": false,
+          "Query": "AND OASysEncl.ChassisTypes0 IN (8, 9, 10, 14) AND dbo.v_R_System.Obsolete0 = 0 ORDER BY dbo.v_R_System.ResourceID ASC",
+          "AssetIdentifier": {
+              "DBColumn": "MachineName",
+              "Entity": "Asset",
+              "EntityColumn": "h_name"
+          },
+          "SoftwareInventory": {
+              "AssetIDColumn": "AssetID",
+              "AppIDColumn": "AppID",
+              "Query": "SELECT AppID = CASE WHEN Publisher0 IS NULL AND Version0 IS NULL THEN DisplayName0 WHEN Publisher0 IS NOT NULL AND Version0 IS NULL THEN Publisher0+DisplayName0 ELSE Publisher0+DisplayName0+Version0 END, DisplayName0 , Version0, FCM.Name, convert(datetime, InstallDate0, 112) AS InstallDate0, Publisher0, ProdID0, FCM.ResourceID FROM v_Add_Remove_Programs AS ARP JOIN v_FullCollectionMembership As FCM on ARP.ResourceID=FCM.ResourceID WHERE FCM.CollectionID = 'SMS00001' AND FCM.ResourceID = '{{AssetID}}' AND DisplayName0 IS NOT NULL AND DisplayName0 != '' AND DisplayName0 NOT LIKE '%Update for Windows%' ORDER BY ProdID0 ASC",
+              "Mapping": {
+                  "h_app_id":"[AppID]",
+                  "h_app_name": "[DisplayName0]",
+                  "h_app_vendor":"[Publisher0]",
+                  "h_app_version":"[Version0]",
+                  "h_app_install_date":"[InstallDate0]",
+                  "h_app_help":"",
+                  "h_app_info":""
+              }
+          }
+      }
   ],
   "AssetGenericFieldMapping":{
       "h_name":"[MachineName]",

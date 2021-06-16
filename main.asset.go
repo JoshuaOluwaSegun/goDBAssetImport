@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,7 +12,120 @@ import (
 
 	apiLib "github.com/hornbill/goApiLib"
 	"github.com/hornbill/pb"
+	"github.com/jmoiron/sqlx"
 )
+
+func getAssetCount(assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct) (assetCount uint64, err error) {
+	hornbillImport.SetParam("application", "com.hornbill.servicemanager")
+	hornbillImport.SetParam("queryName", "getAssetsListForImport")
+	hornbillImport.OpenElement("queryParams")
+	hornbillImport.SetParam("classId", assetType.Class)
+	hornbillImport.SetParam("typeId", strconv.Itoa(assetType.TypeID))
+	hornbillImport.CloseElement("queryParams")
+	hornbillImport.OpenElement("queryOptions")
+	hornbillImport.SetParam("queryType", "count")
+	hornbillImport.CloseElement("queryOptions")
+
+	RespBody, err := hornbillImport.Invoke("data", "queryExec")
+
+	var JSONResp xmlmcCountResponse
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal([]byte(RespBody), &JSONResp)
+	if err != nil {
+		return
+	}
+	if JSONResp.State.Error != "" {
+		err = errors.New(JSONResp.State.Error)
+		return
+	}
+
+	//-- return Count
+	assetCount, err = strconv.ParseUint(JSONResp.Params.RowData.Row[0].Count, 10, 16)
+	return
+}
+
+func getAssetRecords(assetCount uint64, assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct) (map[string]map[string]interface{}, error) {
+	var (
+		loopCount uint64
+		queryType string
+		recordMap = make(map[string]map[string]interface{})
+		err       error
+	)
+	pageSize = 1000
+	switch assetType.Class {
+	case "basic":
+		queryType = "recordsBasic"
+	case "computer":
+		queryType = "recordsComputer"
+	case "computerPeripheral":
+		queryType = "recordsComputerPeripheral"
+	case "mobileDevice":
+		queryType = "recordsMobileDevice"
+	case "networkDevice":
+		queryType = "recordsNetworkDevice"
+	case "printer":
+		queryType = "recordsPrinter"
+	case "software":
+		queryType = "recordsSoftware"
+	case "telecoms":
+		queryType = "recordsTelecoms"
+	}
+	//-- Init Map
+	//-- Load Results in pages of pageSize
+	bar := pb.StartNew(int(assetCount))
+	RespBody := ""
+	for loopCount < assetCount {
+		logger(1, "Loading Asset List Offset: "+fmt.Sprintf("%d", loopCount)+"\n", false, false)
+		hornbillImport.SetParam("application", "com.hornbill.servicemanager")
+		hornbillImport.SetParam("queryName", "getAssetsListForImport")
+		hornbillImport.OpenElement("queryParams")
+		hornbillImport.SetParam("rowstart", strconv.FormatUint(loopCount, 10))
+		hornbillImport.SetParam("limit", strconv.Itoa(pageSize))
+		hornbillImport.SetParam("classId", assetType.Class)
+		hornbillImport.SetParam("typeId", strconv.Itoa(assetType.TypeID))
+		hornbillImport.CloseElement("queryParams")
+		hornbillImport.OpenElement("queryOptions")
+		hornbillImport.SetParam("queryType", queryType)
+		hornbillImport.CloseElement("queryOptions")
+
+		RespBody, err = hornbillImport.Invoke("data", "queryExec")
+		var JSONResp xmlmcAssetRecordsResponse
+		if err != nil {
+			logger(4, "Error returning page of asset records: "+err.Error(), false, true)
+			break
+		}
+		err = json.Unmarshal([]byte(RespBody), &JSONResp)
+		if err != nil {
+			logger(4, "Error returning page of asset records: "+err.Error(), false, true)
+			break
+		}
+		if JSONResp.State.Error != "" {
+			err = errors.New(JSONResp.State.Error)
+			logger(4, "Error returning page of asset records: "+JSONResp.State.Error, false, true)
+			break
+		}
+
+		// Add page size
+		loopCount += uint64(pageSize)
+
+		//-- Check for empty result set
+		if len(JSONResp.Params.RowData.Row) == 0 {
+			break
+		}
+		for _, v := range JSONResp.Params.RowData.Row {
+			if v[assetType.AssetIdentifier.EntityColumn] != nil {
+				bar.Add(1)
+				keyVal := fmt.Sprintf("%s", v[assetType.AssetIdentifier.EntityColumn])
+				recordMap[keyVal] = v
+			}
+		}
+	}
+	bar.FinishPrint("Hornbill " + assetType.AssetType + " Asset Records Cached \n")
+
+	return recordMap, err
+}
 
 //getAssetClass -- Get Asset Class & Type ID from Asset Type Name
 func getAssetClass(confAssetType string) (assetClass string, assetType int) {
@@ -26,15 +142,15 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 	var XMLSTRING = espXmlmc.GetParam()
 	XMLGetMeta, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords2")
 	if xmlmcErr != nil {
-		logger(4, "API Call failed when retrieving Asset Class:"+fmt.Sprintf("%v", xmlmcErr), false)
-		logger(1, "API XML: "+XMLSTRING, false)
+		logger(4, "API Call failed when retrieving Asset Class:"+fmt.Sprintf("%v", xmlmcErr), false, true)
+		logger(1, "API XML: "+XMLSTRING, false, true)
 	}
 
 	var xmlRespon xmlmcTypeListResponse
 	err := xml.Unmarshal([]byte(XMLGetMeta), &xmlRespon)
 	if err != nil {
-		logger(4, "Could not get Asset Class and Type. Please check AssetType within your configuration file:"+fmt.Sprintf("%v", err), true)
-		logger(1, "API XML: "+XMLSTRING, false)
+		logger(4, "Could not get Asset Class and Type. Please check AssetType within your configuration file:"+err.Error(), true, true)
+		logger(1, "API XML: "+XMLSTRING, false, true)
 	} else {
 		assetClass = xmlRespon.Params.RowData.Row.TypeClass
 		assetType = xmlRespon.Params.RowData.Row.TypeID
@@ -45,346 +161,322 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 //processAssets -- Processes Assets from Asset Map
 //--If asset already exists on the instance, update
 //--If asset doesn't exist, create
-func processAssets(arrAssets []map[string]interface{}, assetType assetTypesStruct) {
+func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[string]map[string]interface{}, assetType assetTypesStruct) {
+	logger(1, "Processing "+assetType.AssetType+" Type Assets...", true, true)
 	bar := pb.StartNew(len(arrAssets))
-	logger(1, "Processing Assets", false)
 
 	//Get the identity of the AssetID field from the config
 	assetIDIdent := fmt.Sprintf("%v", assetType.AssetIdentifier.DBColumn)
-	debugLog("Asset Identifier:", assetType.AssetIdentifier.Entity, assetType.AssetIdentifier.EntityColumn, assetType.AssetIdentifier.DBColumn, assetIDIdent)
+	debugLog(nil, "Asset Identifier:", assetType.AssetIdentifier.Entity, assetType.AssetIdentifier.EntityColumn, assetType.AssetIdentifier.DBColumn, assetIDIdent)
 	blnContractConnect := supplierManagerInstalled() && assetType.AssetIdentifier.DBContractColumn != ""
 	blnSupplierConnect := supplierManagerInstalled() && assetType.AssetIdentifier.DBSupplierColumn != ""
 	blnCMInPolicy := configManagerInstalled() && assetType.AssetIdentifier.DBInPolicyColumn != ""
+
 	//-- Loop each asset
 	maxGoroutinesGuard := make(chan struct{}, maxGoroutines)
-
 	for _, assetRecord := range arrAssets {
 		maxGoroutinesGuard <- struct{}{}
 		worker.Add(1)
-		assetMap := assetRecord
-		//Get the asset ID for the current record
-		assetID := getFieldFromDB(assetIDIdent, assetMap)
-		/*
-		interfaceContent := assetMap[assetIDIdent]
-		var assetID string
-		switch v := interfaceContent.(type) {
-		case []uint8:
-			assetID = string(v)
-		default:
-			assetID = fmt.Sprintf("%v", assetMap[assetIDIdent])
-		}
-		*/
-		debugLog("Asset ID:", assetID)
+		var (
+			assetIDInstance string
+			hbRecordHash    string
+			hbSIRecordHash  string
+			dbRecordHash    string
+			assetForHash    []map[string]interface{}
+			assetMap        = assetRecord
+		)
 
-		espXmlmc := apiLib.NewXmlmcInstance(SQLImportConf.InstanceID)
-		espXmlmc.SetAPIKey(SQLImportConf.APIKey)
+		//Get the asset ID for the current record
+		assetID := iToS(assetMap[assetIDIdent])
+
+		dbRecordHash = Hash(append(assetForHash, assetRecord))
+
 		go func() {
 			defer worker.Done()
-			time.Sleep(1 * time.Millisecond)
 			mutexBar.Lock()
 			bar.Increment()
 			mutexBar.Unlock()
 
-			var boolUpdate = false
-			boolUpdate, searchSuccess, assetIDInstance := getAssetID(assetID, assetType.AssetIdentifier, espXmlmc)
-			debugLog("assetIDInstance:", assetIDInstance)
-			var boolActioned = false
-			//-- Update or Create Asset
-			if searchSuccess {
-				if boolUpdate {
-					if assetType.OperationType == "" || strings.ToLower(assetType.OperationType) == "both" || strings.ToLower(assetType.OperationType) == "update" {
-						usedBy := ""
-						if assetType.PreserveShared {
-							usedBy = getAssetUsedBy(assetIDInstance, espXmlmc)
-						}
-						logger(1, "Update Asset: "+assetID, false)
-						updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc)
-						boolActioned = true
-					}
-				} else {
-					if assetType.OperationType == "" || strings.ToLower(assetType.OperationType) == "both" || strings.ToLower(assetType.OperationType) == "create" {
-						logger(1, "Create Asset: "+assetID, false)
-						assetIDInstance = createAsset(assetMap, assetID, espXmlmc)
-						boolActioned = true
-					}
-				}
-				// additional stuff
-				if boolActioned && assetIDInstance != "" {
-					if blnContractConnect {
-						contractId := getFieldFromDB(assetType.AssetIdentifier.DBContractColumn, assetMap)
-						if contractId != "" {
-							addContract(assetIDInstance, contractId, espXmlmc)
-						}
-					}
-					if blnSupplierConnect {
-						supplierId := getFieldFromDB(assetType.AssetIdentifier.DBSupplierColumn, assetMap)
-						if supplierId != "" {
-							connectSupplier(assetIDInstance, supplierId, espXmlmc)
-						}
-					}
-					if blnCMInPolicy {
-						inPolicy := getFieldFromDB(assetType.AssetIdentifier.DBInPolicyColumn, assetMap)
-						if inPolicy == "1" {
-							addInPolicy(assetIDInstance, espXmlmc)
-						}
-					}
-				}
-
-			} else {
-				logger(4, "Asset search API call failed for asset with Unique ID: "+assetID, true)
+			var (
+				boolUpdate          = false
+				boolUpdateSI        = false
+				boolCreate          = false
+				boolActioned        = false
+				buffer              bytes.Buffer
+				softwareRecords     map[string]map[string]interface{}
+				softwareRecordsHash string
+			)
+			//One DB connection per worker
+			db, err := makeDBConnection()
+			if err != nil {
+				logger(4, "[DATABASE] "+err.Error(), false, true)
 			}
+			defer db.Close()
+
+			//One XMLMC connection per worker
+			espXmlmc := apiLib.NewXmlmcInstance(SQLImportConf.InstanceID)
+			espXmlmc.SetAPIKey(SQLImportConf.APIKey)
+
+			buffer.WriteString(loggerGen(1, "    "))
+			buffer.WriteString(loggerGen(1, "Processing Asset: "+assetID))
+
+			if asset, ok := assetsCache[assetID]; ok {
+				//Asset exists
+				assetIDInstance = fmt.Sprintf("%v", asset["h_pk_asset_id"])
+				debugLog(&buffer, "Asset ID Instance"+assetIDInstance)
+				debugLog(&buffer, "Asset Class: "+assetType.Class)
+				switch assetType.Class {
+				case "computer":
+					//Main asset record
+					hbRecordHash = fmt.Sprintf("%v", asset["h_dsc_cf_fingerprint"])
+					debugLog(&buffer, "Database Asset Record Hash: "+dbRecordHash)
+					debugLog(&buffer, "Hornbill Asset Record Hash: "+hbRecordHash)
+					if hbRecordHash != dbRecordHash {
+						boolUpdate = true
+					} else {
+						mutexCounters.Lock()
+						counters.updateSkipped++
+						mutexCounters.Unlock()
+					}
+
+					//Software inventory records
+					hbSIRecordHash = fmt.Sprintf("%v", asset["h_dsc_sw_fingerprint"])
+					debugLog(&buffer, "Database Asset Software Inventory Record Hash: "+softwareRecordsHash)
+					debugLog(&buffer, "Hornbill Asset Software Inventory Record Hash: "+hbSIRecordHash)
+					softwareRecords, softwareRecordsHash, err = getSoftwareRecords(assetMap, assetType, espXmlmc, db, &buffer)
+
+					if err != nil {
+						buffer.WriteString(loggerGen(4, err.Error()))
+						mutexCounters.Lock()
+						counters.softwareCreateFailed++
+						mutexCounters.Unlock()
+					}
+					if len(softwareRecords) > 0 && hbSIRecordHash != softwareRecordsHash {
+						boolUpdateSI = true
+					} else {
+						buffer.WriteString(loggerGen(1, "Asset match found, no software inventory updates required"))
+						mutexCounters.Lock()
+						counters.softwareSkipped++
+						mutexCounters.Unlock()
+					}
+
+				case "mobileDevice":
+					//Main asset record
+					hbRecordHash = fmt.Sprintf("%v", asset["h_dsc_fingerprint"])
+					debugLog(&buffer, "Database Asset Record Hash: "+dbRecordHash)
+					debugLog(&buffer, "Hornbill Asset Record Hash: "+hbRecordHash)
+					if hbRecordHash != dbRecordHash {
+						boolUpdate = true
+					} else {
+						mutexCounters.Lock()
+						counters.updateSkipped++
+						mutexCounters.Unlock()
+					}
+
+					//Software inventory records
+					hbSIRecordHash = fmt.Sprintf("%v", asset["h_dsc_sw_fingerprint"])
+					debugLog(&buffer, "Hornbill Asset Software Inventory Record Hash: "+hbSIRecordHash)
+					softwareRecords, softwareRecordsHash, err = getSoftwareRecords(assetMap, assetType, espXmlmc, db, &buffer)
+					if err != nil {
+						buffer.WriteString(loggerGen(4, err.Error()))
+						mutexCounters.Lock()
+						counters.softwareCreateFailed++
+						mutexCounters.Unlock()
+					}
+					if len(softwareRecords) > 0 && hbSIRecordHash != softwareRecordsHash {
+						boolUpdateSI = true
+					} else {
+						buffer.WriteString(loggerGen(1, "Asset match found, no software inventory updates required"))
+						mutexCounters.Lock()
+						counters.softwareSkipped++
+						mutexCounters.Unlock()
+					}
+
+				case "printer":
+					hbRecordHash = fmt.Sprintf("%v", asset["h_dsc_siid"])
+					debugLog(&buffer, "Database Asset Record Hash: "+dbRecordHash)
+					debugLog(&buffer, "Hornbill Asset Record Hash: "+hbRecordHash)
+					if hbRecordHash != dbRecordHash {
+						boolUpdate = true
+					} else {
+						mutexCounters.Lock()
+						counters.updateSkipped++
+						mutexCounters.Unlock()
+					}
+				default:
+					//basic
+					//computerPeripheral
+					//networkDevice
+					//software
+					//telecoms
+					hbRecordHash = fmt.Sprintf("%v", asset["h_dsc_fingerprint"])
+					debugLog(&buffer, "Database Asset Record Hash: "+dbRecordHash)
+					debugLog(&buffer, "Hornbill Asset Record Hash: "+hbRecordHash)
+					if hbRecordHash != dbRecordHash {
+						boolUpdate = true
+					} else {
+						mutexCounters.Lock()
+						counters.updateSkipped++
+						mutexCounters.Unlock()
+					}
+					boolUpdate = true
+				}
+				if !boolUpdate {
+					buffer.WriteString(loggerGen(1, "Asset match found, no details require updating"))
+				}
+			} else {
+				debugLog(&buffer, "Asset Match Doesn't Exist - Create")
+				boolCreate = true
+			}
+
+			//-- Update or Create Asset
+			if boolUpdate {
+				if assetType.OperationType == "" || strings.ToLower(assetType.OperationType) == "both" || strings.ToLower(assetType.OperationType) == "update" {
+					usedBy := ""
+					if assetType.PreserveShared {
+						usedBy = iToS(assetMap["h_used_by_name"])
+					}
+					buffer.WriteString(loggerGen(1, "Update Asset: "+assetID))
+					boolActioned = updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc, db, &buffer)
+				} else {
+					buffer.WriteString(loggerGen(1, "Asset match found, but OperationType not set to Both or Update"))
+				}
+			}
+			if boolCreate {
+				if assetType.OperationType == "" || strings.ToLower(assetType.OperationType) == "both" || strings.ToLower(assetType.OperationType) == "create" {
+					buffer.WriteString(loggerGen(1, "Create Asset: "+assetID))
+					assetIDInstance, boolActioned = createAsset(assetType, assetMap, assetID, espXmlmc, db, &buffer)
+				} else {
+					buffer.WriteString(loggerGen(1, "Asset match not found, but OperationType not set to Both or Create"))
+				}
+			}
+			if boolUpdateSI {
+				err = updateAssetSI(assetIDInstance, softwareRecords, softwareRecordsHash, assetType, espXmlmc, &buffer)
+				if err != nil {
+					buffer.WriteString(loggerGen(4, err.Error()))
+				}
+			}
+
+			// additional stuff
+			if boolActioned && assetIDInstance != "" {
+				if blnContractConnect {
+					contractId := iToS(assetMap[assetType.AssetIdentifier.DBContractColumn])
+					if contractId != "" {
+						addContract(assetIDInstance, contractId, espXmlmc, &buffer)
+					}
+				}
+				if blnSupplierConnect {
+					supplierId := iToS(assetMap[assetType.AssetIdentifier.DBSupplierColumn])
+					if supplierId != "" {
+						connectSupplier(assetIDInstance, supplierId, espXmlmc, &buffer)
+					}
+				}
+				if blnCMInPolicy {
+					inPolicy := iToS(assetMap[assetType.AssetIdentifier.DBInPolicyColumn])
+					if inPolicy == "1" {
+						addInPolicy(assetIDInstance, espXmlmc, &buffer)
+					}
+				}
+			}
+			mutexBuffer.Lock()
+			loggerWriteBuffer(buffer.String())
+			mutexBuffer.Unlock()
+			buffer.Reset()
 			<-maxGoroutinesGuard
 		}()
 	}
 	worker.Wait()
-	bar.FinishPrint("Processing Complete!")
-}
-
-//getAssetUsedBy - returns asset details
-func getAssetUsedBy(assetID string, espXmlmc *apiLib.XmlmcInstStruct) string {
-	returnUsedBy := ""
-	espXmlmc.SetParam("application", appServiceManager)
-	espXmlmc.SetParam("entity", "Asset")
-	espXmlmc.SetParam("keyValue", assetID)
-	debugLog("Retrieving Used By for " + assetID)
-	var XMLSTRING = espXmlmc.GetParam()
-	XMLAssetSearch, xmlmcErr := espXmlmc.Invoke("data", "entityGetRecord")
-	if xmlmcErr != nil {
-		logger(4, "API Call failed when retrieving Asset Details ["+assetID+"] :"+xmlmcErr.Error(), false)
-		logger(1, "API Call XML: "+XMLSTRING, false)
-	} else {
-		var xmlRespon xmlmcAssetDetails
-		err := xml.Unmarshal([]byte(XMLAssetSearch), &xmlRespon)
-		if err != nil {
-			logger(3, "Unable to retrieve Asset ["+assetID+"] : "+err.Error(), true)
-			logger(1, "API Call XML: "+XMLSTRING, false)
-		} else {
-			if xmlRespon.MethodResult != "ok" {
-				logger(3, "Unable to retrieve Asset details ["+assetID+"] : "+xmlRespon.State.ErrorRet, true)
-				logger(1, "API Call XML: "+XMLSTRING, false)
-			} else {
-				returnUsedBy = xmlRespon.Details.UsedByName
-			}
-		}
-	}
-	debugLog("getAssetUsedBy " + returnUsedBy)
-	return returnUsedBy
-}
-
-//getAssetID -- Check if asset is on the instance
-//-- Returns true, assetid if so
-//-- Returns false, "" if not
-func getAssetID(assetID string, assetIdentifier assetIdentifierStruct, espXmlmc *apiLib.XmlmcInstStruct) (bool, bool, string) {
-	boolReturn := false
-	boolSuccess := false
-	returnAssetID := ""
-	espXmlmc.SetParam("application", appServiceManager)
-	espXmlmc.SetParam("entity", fmt.Sprintf("%v", assetIdentifier.Entity))
-	espXmlmc.OpenElement("searchFilter")
-	espXmlmc.SetParam("column", fmt.Sprintf("%v", assetIdentifier.EntityColumn))
-	espXmlmc.SetParam("value", assetID)
-	espXmlmc.SetParam("matchType", "exact")
-	espXmlmc.CloseElement("searchFilter")
-	espXmlmc.SetParam("maxResults", "1")
-	var XMLSTRING = espXmlmc.GetParam()
-	XMLAssetSearch, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords2")
-	if xmlmcErr != nil {
-		logger(4, "API Call failed when searching instance for existing Asset:"+fmt.Sprintf("%v", xmlmcErr), false)
-		logger(1, "API Call XML: "+XMLSTRING, false)
-	} else {
-		var xmlRespon xmlmcAssetResponse
-		err := xml.Unmarshal([]byte(XMLAssetSearch), &xmlRespon)
-		if err != nil {
-			logger(3, "Unable to Search for Asset: "+fmt.Sprintf("%v", err), true)
-			logger(1, "API Call XML: "+XMLSTRING, false)
-		} else {
-			if xmlRespon.MethodResult != "ok" {
-				logger(3, "Unable to Search for Asset: "+xmlRespon.State.ErrorRet, true)
-				logger(1, "API Call XML: "+XMLSTRING, false)
-			} else {
-				boolSuccess = true
-				returnAssetID = xmlRespon.Params.RowData.Row.AssetID
-				//-- Check Response
-				if returnAssetID != "" {
-					boolReturn = true
-				}
-			}
-		}
-	}
-	return boolReturn, boolSuccess, returnAssetID
+	bar.FinishPrint(assetType.AssetType + " Asset Type Processing Complete!")
 }
 
 // createAsset -- Creates Asset record from the passed through map data
-func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLib.XmlmcInstStruct) string {
-	//Get site ID
-	siteID := ""
-	siteNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_site"])
-	siteName := getFieldValue("h_site", siteNameMapping, u)
-	if siteName != "" && siteName != "__clear__" {
-		siteIsInCache, SiteIDCache := siteInCache(siteName)
-		//-- Check if we have cached the site already
-		if siteIsInCache {
-			siteID = strconv.Itoa(SiteIDCache)
-		} else {
-			siteIsOnInstance, SiteIDInstance := searchSite(siteName, espXmlmc)
-			//-- If Returned set output
-			if siteIsOnInstance {
-				siteID = strconv.Itoa(SiteIDInstance)
-			}
+func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAssetID string, espXmlmc *apiLib.XmlmcInstStruct, db *sqlx.DB, buffer *bytes.Buffer) (string, bool) {
+
+	var (
+		newAssetHash        string
+		err                 error
+		softwareRecords     map[string]map[string]interface{}
+		softwareRecordsHash string
+	)
+
+	var assetForHash []map[string]interface{}
+	newAssetHash = Hash(append(assetForHash, u))
+	if assetType.Class == "computer" || assetType.Class == "mobileDevice" {
+		softwareRecords, softwareRecordsHash, err = getSoftwareRecords(u, assetType, espXmlmc, db, buffer)
+		if err != nil {
+			buffer.WriteString(loggerGen(4, err.Error()))
+			mutexCounters.Lock()
+			counters.softwareCreateFailed++
+			mutexCounters.Unlock()
 		}
 	}
-	debugLog("Site Mapping:", siteNameMapping, ":", siteName, ":", siteID)
+
+	//Get site ID
+	siteID, siteName := getSiteID(u, buffer)
 
 	//Get Company ID
-	companyID := ""
-	companyNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_company_name"])
-	companyName := getFieldValue("h_company_name", companyNameMapping, u)
-	if companyName != "" && companyName != "<nil>" && companyName != "__clear__" {
-		companyIsInCache, CompanyIDCache := groupInCache(companyName, 5)
-		if companyIsInCache {
-			companyID = CompanyIDCache
-		} else {
-			companyIsOnInstance, CompanyIDInstance := searchGroup(companyName, 5, espXmlmc)
-			if companyIsOnInstance {
-				companyID = CompanyIDInstance
-			}
-		}
-	}
-	debugLog("Company Mapping:", companyNameMapping, ":", companyName, ":", companyID)
+	companyID, companyName := getGroupID(u, "company", buffer)
+
 	//Get Department ID
-	departmentID := ""
-	departmentNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_department_name"])
-	departmentName := getFieldValue("h_department_name", departmentNameMapping, u)
-	if departmentName != "" && departmentName != "<nil>" && departmentName != "__clear__" {
-		departmentIsInCache, DepartmentIDCache := groupInCache(departmentName, 2)
-		if departmentIsInCache {
-			departmentID = DepartmentIDCache
-		} else {
-			departmentIsOnInstance, DepartmentIDInstance := searchGroup(departmentName, 2, espXmlmc)
-			if departmentIsOnInstance {
-				departmentID = DepartmentIDInstance
-			}
-		}
-	}
-	debugLog("Department Mapping:", departmentNameMapping, ":", departmentName, ":", departmentID)
+	departmentID, departmentName := getGroupID(u, "department", buffer)
 
-	//Get Owned By name
-	ownedByName := ""
-	ownedByURN := ""
-	ownedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_owned_by"])
-	ownedByID := getFieldValue("h_owned_by", ownedByMapping, u)
-	if ownedByID != "" && ownedByID != "<nil>" && ownedByID != "__clear__" {
-		ownedByIsInCache, ownedByNameCache, ownedByIDCache := customerInCache(ownedByID)
-		//-- Check if we have cached the customer already
-		if ownedByIsInCache {
-			ownedByName = ownedByNameCache
-			ownedByID = ownedByIDCache
-		} else {
-			ownedByIsOnInstance, ownedByNameInstance, ownedByIDInstance := searchCustomer(ownedByID, espXmlmc)
-			//-- If Returned set output
-			if ownedByIsOnInstance {
-				ownedByName = ownedByNameInstance
-				ownedByID = ownedByIDInstance
-			}
-		}
-	}
-	if ownedByName != "" {
-		ownedByURN = "urn:sys:0:" + ownedByName + ":" + ownedByID
-	}
-	debugLog("Owned By Mapping:", ownedByMapping, ":", ownedByID, ":", ownedByName, ":", ownedByURN)
+	//Get Owned By details
+	_, ownedByURN, ownedByName := getUserID(u, "h_owned_by", buffer)
 
-	//Get Used By name
-	usedByName := ""
-	usedByURN := ""
-	usedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_used_by"])
-	usedByID := getFieldValue("h_used_by", usedByMapping, u)
-	if usedByID != "" && usedByID != "<nil>" && usedByID != "__clear__" {
-		usedByIsInCache, usedByNameCache, usedByIDCache := customerInCache(usedByID)
-		//-- Check if we have cached the customer already
-		if usedByIsInCache {
-			usedByName = usedByNameCache
-			usedByID = usedByIDCache
-		} else {
-			usedByIsOnInstance, usedByNameInstance, usedByIDInstane := searchCustomer(usedByID, espXmlmc)
-			//-- If Returned set output
-			if usedByIsOnInstance {
-				usedByName = usedByNameInstance
-				usedByID = usedByIDInstane
-			}
-		}
-	}
-	if usedByName != "" {
-		usedByURN = "urn:sys:0:" + usedByName + ":" + usedByID
-	}
-	debugLog("Used By Mapping:", usedByMapping, ":", usedByID, ":", usedByName, ":", usedByURN)
+	//Get Used By details
+	_, usedByURN, usedByName := getUserID(u, "h_used_by", buffer)
 
-	//Last Logged On By
-	lastLoggedOnByURN := ""
-	lastLoggedOnByName := ""
-	lastLoggedOnUserMapping := fmt.Sprintf("%v", SQLImportConf.AssetTypeFieldMapping["h_last_logged_on_user"])
-	lastLoggedOnByID := getFieldValue("h_last_logged_on_user", lastLoggedOnUserMapping, u)
-	if lastLoggedOnUserMapping != "" && lastLoggedOnByID != "" && lastLoggedOnByID != "<nil>" && lastLoggedOnByID != "__clear__" {
-		lastLoggedOnByIsInCache, lastLoggedOnByNameCache, lastLoggedOnByIDCache := customerInCache(lastLoggedOnByID)
-		//-- Check if we have cached the customer already
-		if lastLoggedOnByIsInCache {
-			lastLoggedOnByName = lastLoggedOnByNameCache
-			lastLoggedOnByID = lastLoggedOnByIDCache
-			lastLoggedOnByURN = "urn:sys:0:" + lastLoggedOnByNameCache + ":" + lastLoggedOnByID
-		} else {
-			lastLoggedOnByIsOnInstance, lastLoggedOnByNameInstance, lastLoggedOnByIDInstance := searchCustomer(lastLoggedOnByID, espXmlmc)
-			//-- If Returned set output
-			if lastLoggedOnByIsOnInstance {
-				lastLoggedOnByName = lastLoggedOnByNameInstance
-				lastLoggedOnByID = lastLoggedOnByIDInstance
-				lastLoggedOnByURN = "urn:sys:0:" + lastLoggedOnByNameInstance + ":" + lastLoggedOnByID
-			}
-		}
-	}
-	debugLog("Last Logged On Mapping:", lastLoggedOnUserMapping, ":", lastLoggedOnByID, ":", lastLoggedOnByName, ":", lastLoggedOnByURN)
+	//Get Last Logged On details
+	_, lastLoggedOnByURN, _ := getUserID(u, "h_last_logged_on_user", buffer)
 
 	//Get/Set params from map stored against FieldMapping
 	espXmlmc.SetParam("application", appServiceManager)
 	espXmlmc.SetParam("entity", "Asset")
-	//espXmlmc.SetParam("returnModifiedData", "false")
 	espXmlmc.SetParam("returnModifiedData", "true")
 	espXmlmc.OpenElement("primaryEntityData")
 	espXmlmc.OpenElement("record")
-	//Set Class & TypeID
 	espXmlmc.SetParam("h_class", AssetClass)
 	espXmlmc.SetParam("h_type", strconv.Itoa(AssetTypeID))
 
-	espXmlmc.SetParam("h_last_updated", APITimeNow)
+	espXmlmc.SetParam("h_last_updated", time.Now().Format("2006-01-02 15:04:05"))
 	espXmlmc.SetParam("h_last_updated_by", "Import - Add")
 
 	//Get asset field mapping
-	debugLog("Asset Field Mapping")
+	debugLog(buffer, "Asset Field Mapping")
 	for k, v := range SQLImportConf.AssetGenericFieldMapping {
 		strMapping := fmt.Sprintf("%v", v)
-		value := getFieldValue(k, strMapping, u)
-		debugLog(k, ":", strMapping, ":", value)
+		value := getFieldValue(k, strMapping, u, buffer)
+		debugLog(buffer, k, ":", strMapping, ":", value)
+
 		if value == "__clear__" {
 			continue
 		}
+
 		if k == "h_used_by" && usedByName != "" && usedByURN != "" {
 			espXmlmc.SetParam("h_used_by", usedByURN)
 			espXmlmc.SetParam("h_used_by_name", usedByName)
 		}
+
 		if k == "h_owned_by" && ownedByName != "" && ownedByURN != "" {
 			espXmlmc.SetParam("h_owned_by", ownedByURN)
 			espXmlmc.SetParam("h_owned_by_name", ownedByName)
 		}
-		if k == "h_site" && siteID != "" && siteName != "" {
+
+		if k == "h_site" && siteID != 0 && siteName != "" {
 			espXmlmc.SetParam("h_site", siteName)
-			espXmlmc.SetParam("h_site_id", siteID)
+			espXmlmc.SetParam("h_site_id", strconv.Itoa(siteID))
 		}
+
 		if k == "h_company_name" && companyID != "" && companyName != "" {
 			espXmlmc.SetParam("h_company_name", companyName)
 			espXmlmc.SetParam("h_company_id", companyID)
 		}
+
 		if k == "h_department_name" && departmentID != "" && departmentName != "" {
 			espXmlmc.SetParam("h_department_name", departmentName)
 			espXmlmc.SetParam("h_department_id", departmentID)
 		}
+
 		if k != "h_site" &&
 			k != "h_used_by" &&
 			k != "h_owned_by" &&
@@ -392,7 +484,6 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 			k != "h_department_name" &&
 			strMapping != "" && value != "" {
 			espXmlmc.SetParam(k, value)
-
 		}
 	}
 	espXmlmc.CloseElement("record")
@@ -400,55 +491,75 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 
 	//Add extended asset type field mapping
 	espXmlmc.OpenElement("relatedEntityData")
-	//Set Class & TypeID
 	espXmlmc.SetParam("relationshipName", "AssetClass")
 	espXmlmc.SetParam("entityAction", "insert")
 	espXmlmc.OpenElement("record")
 	espXmlmc.SetParam("h_type", strconv.Itoa(AssetTypeID))
-	debugLog("Asset Type Field Mapping")
+	switch assetType.Class {
+	case "computer":
+		espXmlmc.SetParam("h_dsc_cf_fingerprint", newAssetHash)
+		if softwareRecordsHash != "" {
+			espXmlmc.SetParam("h_dsc_sw_fingerprint", softwareRecordsHash)
+		}
+	case "printer":
+		espXmlmc.SetParam("h_dsc_cf_fingerprint", newAssetHash)
+	case "mobileDevice":
+		espXmlmc.SetParam("h_dsc_fingerprint", newAssetHash)
+		if softwareRecordsHash != "" {
+			espXmlmc.SetParam("h_dsc_sw_fingerprint", softwareRecordsHash)
+		}
+	default:
+		espXmlmc.SetParam("h_dsc_fingerprint", newAssetHash)
+	}
+	debugLog(buffer, "Asset Type Field Mapping")
+
 	//Get asset field mapping
 	for k, v := range SQLImportConf.AssetTypeFieldMapping {
 		strMapping := fmt.Sprintf("%v", v)
-		value := getFieldValue(k, strMapping, u)
-		debugLog(k, ":", strMapping, ":", value)
+		value := getFieldValue(k, strMapping, u, buffer)
+		debugLog(buffer, k, ":", strMapping, ":", value)
 
 		if k == "h_last_logged_on_user" && lastLoggedOnByURN != "" {
 			espXmlmc.SetParam("h_last_logged_on_user", lastLoggedOnByURN)
 		}
+
 		if k != "h_last_logged_on_user" &&
 			strMapping != "" &&
 			value != "" {
 			espXmlmc.SetParam(k, value)
 		}
 	}
+
 	espXmlmc.CloseElement("record")
 	espXmlmc.CloseElement("relatedEntityData")
 
 	//-- Check for Dry Run
 	if !configDryRun {
 		var XMLSTRING = espXmlmc.GetParam()
-		debugLog("Asset Create XML:", XMLSTRING)
+		debugLog(buffer, "Asset Create XML:", XMLSTRING)
 		XMLCreate, xmlmcErr := espXmlmc.Invoke("data", "entityAddRecord")
 		if xmlmcErr != nil {
-			logger(4, "Error running entityAddRecord API for createAsset:"+fmt.Sprintf("%v", xmlmcErr), false)
-			logger(1, "API Call XML: "+XMLSTRING, false)
-			return ""
+			buffer.WriteString(loggerGen(4, "Error running entityAddRecord API for createAsset: "+xmlmcErr.Error()))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+			return "", false
 		}
-		//var xmlRespon xmlmcCreateResponse
+
 		var xmlRespon xmlmcUpdateResponse
-		debugLog("API Call Response:", XMLCreate)
+		debugLog(buffer, "API Call Response:", XMLCreate)
+
 		err := xml.Unmarshal([]byte(XMLCreate), &xmlRespon)
 		if err != nil {
 			mutexCounters.Lock()
 			counters.createFailed++
 			mutexCounters.Unlock()
-			logger(4, "Unable to read response from Hornbill instance from entityAddRecord API for createAsset:"+fmt.Sprintf("%v", err), false)
-			logger(1, "API Call XML: "+XMLSTRING, false)
-			return ""
+			buffer.WriteString(loggerGen(4, "Unable to read response from Hornbill instance from entityAddRecord API for createAsset:"+err.Error()))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+			return "", false
 		}
+
 		if xmlRespon.MethodResult != "ok" {
-			logger(3, "Unable to add asset: "+xmlRespon.State.ErrorRet, false)
-			logger(1, "API Call XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "Unable to add asset: "+xmlRespon.State.ErrorRet))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			mutexCounters.Lock()
 			counters.createFailed++
 			mutexCounters.Unlock()
@@ -456,9 +567,12 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 			mutexCounters.Lock()
 			counters.created++
 			mutexCounters.Unlock()
-			//assetID := xmlRespon.PrimaryKeyValue
 			assetID := xmlRespon.UpdatedCols.AssetPK
+			mutexAssets.Lock()
 			assets[strNewAssetID] = assetID
+			mutexAssets.Unlock()
+			buffer.WriteString(loggerGen(1, "Asset record created successfully: "+assetID))
+
 			//Now add asset URN
 			espXmlmc.SetParam("application", "com.hornbill.servicemanager")
 			espXmlmc.SetParam("entity", "Asset")
@@ -469,40 +583,54 @@ func createAsset(u map[string]interface{}, strNewAssetID string, espXmlmc *apiLi
 			espXmlmc.CloseElement("record")
 			espXmlmc.CloseElement("primaryEntityData")
 			XMLSTRING = espXmlmc.GetParam()
+
 			XMLUpdate, xmlmcErr := espXmlmc.Invoke("data", "entityUpdateRecord")
 			if xmlmcErr != nil {
-				logger(4, "API Call failed when Updating Asset URN:"+fmt.Sprintf("%v", xmlmcErr), false)
-				return ""
+				buffer.WriteString(loggerGen(3, "API Call failed when Updating Asset URN:"+xmlmcErr.Error()))
+				buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+				return assetID, true
 			}
-			var xmlRespon xmlmcResponse
 
+			var xmlRespon xmlmcResponse
 			err := xml.Unmarshal([]byte(XMLUpdate), &xmlRespon)
 			if err != nil {
-				logger(4, "Unable to read response from Hornbill instance when Updating Asset URN:"+fmt.Sprintf("%v", err), false)
-				return ""
+				buffer.WriteString(loggerGen(3, "Unable to read response from Hornbill instance when Updating Asset URN:"+err.Error()))
+				buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+				return assetID, true
 			}
+
 			if xmlRespon.MethodResult != "ok" {
-				logger(3, "Unable to update Asset URN: "+xmlRespon.State.ErrorRet, false)
-				logger(1, "API Call XML: "+XMLSTRING, false)
-				return ""
+				buffer.WriteString(loggerGen(3, "Unable to update Asset URN: "+xmlRespon.State.ErrorRet))
+				buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+				return assetID, true
 			}
-			return assetID
+			buffer.WriteString(loggerGen(1, "Asset URN updated successfully: "+assetID))
+
+			if (assetType.Class == "computer" || assetType.Class == "mobile") && len(softwareRecords) > 0 {
+				buildSoftwareInventory(softwareRecords, assetType, assetID, espXmlmc, buffer)
+			}
+
+			return assetID, true
 		}
 	} else {
 		//-- DEBUG XML TO LOG FILE
 		var XMLSTRING = espXmlmc.GetParam()
-		logger(1, "Asset Create XML "+XMLSTRING, false)
+		buffer.WriteString(loggerGen(1, "API Create XML: "+XMLSTRING))
 		mutexCounters.Lock()
 		counters.createSkipped++
 		mutexCounters.Unlock()
 		espXmlmc.ClearParam()
 	}
-	return ""
+	return "", false
 }
 
 // updateAsset -- Updates Asset record from the passed through map data and asset ID
-func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetID, strNewAssetID, usedBy string, espXmlmc *apiLib.XmlmcInstStruct) bool {
-	boolRecordUpdated := false
+func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetID, strNewAssetID, usedBy string, espXmlmc *apiLib.XmlmcInstStruct, db *sqlx.DB, buffer *bytes.Buffer) bool {
+
+	var (
+		newAssetHash      string
+		boolRecordUpdated = false
+	)
 
 	//Shared clearAttrib array
 	var nilAttrib []apiLib.ParamAttribStruct
@@ -511,137 +639,26 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 	attrib.Value = "true"
 	nilAttrib = append(nilAttrib, attrib)
 
+	var assetForHash []map[string]interface{}
+	newAssetHash = Hash(append(assetForHash, u))
+
 	//Get site ID
-	siteID := ""
-	siteNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_site"])
-	siteName := getFieldValue("h_site", siteNameMapping, u)
-	if siteName != "" && siteName != "<nil>" && siteName != "__clear__" {
-		siteIsInCache, SiteIDCache := siteInCache(siteName)
-		//-- Check if we have cached the site already
-		if siteIsInCache {
-			siteID = strconv.Itoa(SiteIDCache)
-		} else {
-			siteIsOnInstance, SiteIDInstance := searchSite(siteName, espXmlmc)
-			//-- If Returned set output
-			if siteIsOnInstance {
-				siteID = strconv.Itoa(SiteIDInstance)
-			}
-		}
-	}
-	debugLog("Site Mapping:", siteNameMapping, ":", siteName, ":", siteID)
+	siteID, siteName := getSiteID(u, buffer)
 
 	//Get Company ID
-	companyID := ""
-	companyNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_company_name"])
-	companyName := getFieldValue("h_company_name", companyNameMapping, u)
-	if companyName != "" && companyName != "<nil>" && companyName != "__clear__" {
-		companyIsInCache, CompanyIDCache := groupInCache(companyName, 5)
-		if companyIsInCache {
-			companyID = CompanyIDCache
-		} else {
-			companyIsOnInstance, CompanyIDInstance := searchGroup(companyName, 5, espXmlmc)
-			if companyIsOnInstance {
-				companyID = CompanyIDInstance
-			}
-		}
-	}
-	debugLog("Company Mapping:", companyNameMapping, ":", companyName, ":", companyID)
+	companyID, companyName := getGroupID(u, "company", buffer)
+
 	//Get Department ID
-	departmentID := ""
-	departmentNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_department_name"])
-	departmentName := getFieldValue("h_department_name", departmentNameMapping, u)
-	if departmentName != "" && departmentName != "<nil>" && departmentName != "__clear__" {
-		departmentIsInCache, DepartmentIDCache := groupInCache(departmentName, 5)
-		if departmentIsInCache {
-			departmentID = DepartmentIDCache
-		} else {
-			departmentIsOnInstance, DepartmentIDInstance := searchGroup(departmentName, 5, espXmlmc)
-			if departmentIsOnInstance {
-				departmentID = DepartmentIDInstance
-			}
-		}
-	}
-	debugLog("Department Mapping:", departmentNameMapping, ":", departmentName, ":", departmentID)
+	departmentID, departmentName := getGroupID(u, "department", buffer)
 
-	//Get Owned By name
-	ownedByName := ""
-	ownedByURN := ""
-	ownedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_owned_by"])
-	ownedByID := getFieldValue("h_owned_by", ownedByMapping, u)
-	if ownedByID != "" && ownedByID != "<nil>" && ownedByID != "__clear__" {
-		ownedByIsInCache, ownedByNameCache, ownedByIDCache := customerInCache(ownedByID)
-		//-- Check if we have cached the customer already
-		if ownedByIsInCache {
-			ownedByName = ownedByNameCache
-			ownedByID = ownedByIDCache
-		} else {
-			ownedByIsOnInstance, ownedByNameInstance, ownedByIDInstance := searchCustomer(ownedByID, espXmlmc)
-			//-- If Returned set output
-			if ownedByIsOnInstance {
-				ownedByName = ownedByNameInstance
-				ownedByID = ownedByIDInstance
-			}
-		}
-	}
-	if ownedByName != "" {
-		ownedByURN = "urn:sys:0:" + ownedByName + ":" + ownedByID
-	}
-	debugLog("Owned By Mapping:", ownedByMapping, ":", ownedByID, ":", ownedByName, ":", ownedByURN)
+	//Get Owned By details
+	ownedByID, ownedByURN, ownedByName := getUserID(u, "h_owned_by", buffer)
 
-	//Get Used By name
-	usedByName := ""
-	usedByURN := ""
-	usedByID := ""
-	debugLog("UsedBy: " + usedBy)
-	if assetType.PreserveShared && usedBy == "Shared" {
-		debugLog("Preserving Used By " + usedBy)
-	} else {
-		usedByMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping["h_used_by"])
-		usedByID = getFieldValue("h_used_by", usedByMapping, u)
-		if usedByID != "" && usedByID != "<nil>" && usedByID != "__clear__" {
-			usedByIsInCache, usedByNameCache, usedByIDCache := customerInCache(usedByID)
-			//-- Check if we have cached the customer already
-			if usedByIsInCache {
-				usedByName = usedByNameCache
-				usedByID = usedByIDCache
-			} else {
-				usedByIsOnInstance, usedByNameInstance, usedByIDInstance := searchCustomer(usedByID, espXmlmc)
-				//-- If Returned set output
-				if usedByIsOnInstance {
-					usedByName = usedByNameInstance
-					usedByID = usedByIDInstance
-				}
-			}
-		}
-		if usedByName != "" {
-			usedByURN = "urn:sys:0:" + usedByName + ":" + usedByID
-		}
-		debugLog("Used By Mapping:", usedByMapping, ":", usedByID, ":", usedByName, ":", usedByURN)
-	}
+	//Get Used By details
+	usedByID, usedByURN, usedByName := getUserID(u, "h_used_by", buffer)
 
-	//Last Logged On By
-	lastLoggedOnByURN := ""
-	lastLoggedOnByName := ""
-	lastLoggedOnUserMapping := fmt.Sprintf("%v", SQLImportConf.AssetTypeFieldMapping["h_last_logged_on_user"])
-	lastLoggedOnByID := getFieldValue("h_last_logged_on_user", lastLoggedOnUserMapping, u)
-	if lastLoggedOnUserMapping != "" && lastLoggedOnByID != "" && lastLoggedOnByID != "<nil>" && lastLoggedOnByID != "__clear__" {
-		lastLoggedOnByIsInCache, lastLoggedOnByNameCache, lastLoggedOnByIDCache := customerInCache(lastLoggedOnByID)
-		//-- Check if we have cached the customer already
-		if lastLoggedOnByIsInCache {
-			lastLoggedOnByName = lastLoggedOnByNameCache
-			lastLoggedOnByID = lastLoggedOnByIDCache
-			lastLoggedOnByURN = "urn:sys:0:" + lastLoggedOnByNameCache + ":" + lastLoggedOnByID
-		} else {
-			lastLoggedOnByIsOnInstance, lastLoggedOnByNameInstance, lastLoggedOnByIDInstance := searchCustomer(lastLoggedOnByID, espXmlmc)
-			lastLoggedOnByName = lastLoggedOnByNameInstance
-			lastLoggedOnByID = lastLoggedOnByIDInstance
-			//-- If Returned set output
-			if lastLoggedOnByIsOnInstance {
-				lastLoggedOnByURN = "urn:sys:0:" + lastLoggedOnByNameInstance + ":" + lastLoggedOnByID
-			}
-		}
-	}
-	debugLog("Last Logged On Mapping:", lastLoggedOnUserMapping, ":", lastLoggedOnByID, ":", lastLoggedOnByName, ":", lastLoggedOnByURN)
+	//Get Last Logged On details
+	_, lastLoggedOnByURN, _ := getUserID(u, "h_last_logged_on_user", buffer)
 
 	//Get/Set params from map stored against FieldMapping
 	espXmlmc.SetParam("application", appServiceManager)
@@ -651,26 +668,29 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 	espXmlmc.OpenElement("record")
 	espXmlmc.SetParam("h_pk_asset_id", strAssetID)
 	espXmlmc.SetParam("h_asset_urn", "urn:sys:entity:com.hornbill.servicemanager:Asset:"+strAssetID)
-	debugLog("Asset Field Mapping")
+	debugLog(buffer, "Asset Field Mapping")
 
 	//Get asset field mapping
 	for k, v := range SQLImportConf.AssetGenericFieldMapping {
 		strMapping := fmt.Sprintf("%v", v)
-		value := getFieldValue(k, strMapping, u)
-		debugLog(k, ":", strMapping, ":", value)
+		value := getFieldValue(k, strMapping, u, buffer)
+		debugLog(buffer, k, ":", strMapping, ":", value)
 
 		if k == "h_operational_state" && assetType.PreserveOperationalState {
-			continue
 			//Skip updating op state
+			continue
 		}
+
 		if k == "h_record_state" && assetType.PreserveState {
-			continue
 			//Skip updating state
-		}
-		if (k == "h_substate_id" || k == "h_substate_name") && assetType.PreserveSubState {
 			continue
-			//Skip updating subState
 		}
+
+		if (k == "h_substate_id" || k == "h_substate_name") && assetType.PreserveSubState {
+			//Skip updating subState
+			continue
+		}
+
 		if k == "h_used_by" && usedByID != "" {
 			if usedByID == "__clear__" {
 				espXmlmc.SetParamAttr("h_used_by", "", nilAttrib)
@@ -692,16 +712,18 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 			}
 			continue
 		}
+
 		if k == "h_site" && siteName != "" {
 			if siteName == "__clear__" {
 				espXmlmc.SetParamAttr("h_site", "", nilAttrib)
 				espXmlmc.SetParamAttr("h_site_id", "", nilAttrib)
-			} else if siteID != "" {
+			} else if siteID != 0 {
 				espXmlmc.SetParam("h_site", siteName)
-				espXmlmc.SetParam("h_site_id", siteID)
+				espXmlmc.SetParam("h_site_id", strconv.Itoa(siteID))
 			}
 			continue
 		}
+
 		if k == "h_company_name" && companyName != "" {
 			if companyName == "__clear__" {
 				espXmlmc.SetParamAttr("h_company_name", "", nilAttrib)
@@ -712,6 +734,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 			}
 			continue
 		}
+
 		if k == "h_department_name" && departmentName != "" {
 			if departmentName == "__clear__" {
 				espXmlmc.SetParamAttr("h_department_name", "", nilAttrib)
@@ -734,13 +757,14 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 	espXmlmc.CloseElement("primaryEntityData")
 
 	var XMLSTRING = espXmlmc.GetParam()
-	//-- Check for Dry Run
+
 	if !configDryRun {
-		debugLog("Asset Update XML:", XMLSTRING)
+		debugLog(buffer, "Asset Update XML:", XMLSTRING)
+
 		XMLUpdate, xmlmcErr := espXmlmc.Invoke("data", "entityUpdateRecord")
 		if xmlmcErr != nil {
-			logger(4, "API Call failed when Updating Asset:"+fmt.Sprintf("%v", xmlmcErr), false)
-			logger(1, "API Call XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "API Call failed when Updating Asset:"+fmt.Sprintf("%v", xmlmcErr)))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			mutexCounters.Lock()
 			counters.updateFailed++
 			mutexCounters.Unlock()
@@ -751,16 +775,17 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 
 		err := xml.Unmarshal([]byte(XMLUpdate), &xmlRespon)
 		if err != nil {
-			logger(4, "Unable to read response from Hornbill instance when Updating Asset:"+fmt.Sprintf("%v", err), false)
-			logger(1, "API Call XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "Unable to read response from Hornbill instance when Updating Asset:"+err.Error()))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			mutexCounters.Lock()
 			counters.updateFailed++
 			mutexCounters.Unlock()
 			return false
 		}
+
 		if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" && !strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected") {
-			logger(3, "Unable to Update Asset: "+xmlRespon.State.ErrorRet, false)
-			logger(1, "API Call XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "Unable to Update Asset: "+xmlRespon.State.ErrorRet))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			mutexCounters.Lock()
 			counters.updateFailed++
 			mutexCounters.Unlock()
@@ -774,6 +799,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		}
 
 		if xmlRespon.MethodResult == "ok" {
+			buffer.WriteString(loggerGen(1, "Asset record updated successfully: "+strAssetID))
 			boolRecordUpdated = true
 		}
 
@@ -788,19 +814,28 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		espXmlmc.SetParam("h_pk_asset_id", strAssetID)
 		espXmlmc.CloseElement("record")
 		espXmlmc.CloseElement("primaryEntityData")
-		//Add extended asset type field mapping
 		espXmlmc.OpenElement("relatedEntityData")
-		//Set Class & TypeID
 		espXmlmc.SetParam("relationshipName", "AssetClass")
 		espXmlmc.SetParam("entityAction", "update")
 		espXmlmc.OpenElement("record")
 		espXmlmc.SetParam("h_pk_asset_id", strAssetID)
-		debugLog("Asset Field Mapping")
+		switch assetType.Class {
+		case "basic":
+			espXmlmc.SetParam("h_dsc_fingerprint", newAssetHash)
+		case "computer":
+			espXmlmc.SetParam("h_dsc_cf_fingerprint", newAssetHash)
+		case "printer":
+			espXmlmc.SetParam("h_dsc_cf_fingerprint", newAssetHash)
+		case "software":
+			espXmlmc.SetParam("h_dsc_fingerprint", newAssetHash)
+		}
+		debugLog(buffer, "Asset Field Mapping")
+
 		//Get asset field mapping
 		for k, v := range SQLImportConf.AssetTypeFieldMapping {
 			strMapping := fmt.Sprintf("%v", v)
-			value := getFieldValue(k, strMapping, u)
-			debugLog(k, ":", strMapping, ":", value)
+			value := getFieldValue(k, strMapping, u, buffer)
+			debugLog(buffer, k, ":", strMapping, ":", value)
 			if value == "__clear__" {
 				espXmlmc.SetParamAttr(k, "", nilAttrib)
 			} else {
@@ -812,14 +847,16 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 				}
 			}
 		}
+
 		espXmlmc.CloseElement("record")
 		espXmlmc.CloseElement("relatedEntityData")
 		XMLMCRequest := espXmlmc.GetParam()
-		debugLog("Asset Extended Update XML:", XMLMCRequest)
+		debugLog(buffer, "Asset Extended Update XML:", XMLMCRequest)
+
 		XMLUpdateExt, xmlmcErrExt := espXmlmc.Invoke("data", "entityUpdateRecord")
 		if xmlmcErrExt != nil {
-			logger(4, "API Call failed when Updating Asset Extended Details:"+fmt.Sprintf("%v", xmlmcErrExt), false)
-			logger(1, "API Call XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "API Call failed when Updating Asset Extended Details:"+xmlmcErrExt.Error()))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			mutexCounters.Lock()
 			counters.updateFailed++
 			mutexCounters.Unlock()
@@ -829,16 +866,17 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 
 		err = xml.Unmarshal([]byte(XMLUpdateExt), &xmlResponExt)
 		if err != nil {
-			logger(4, "Unable to read response from Hornbill instance when Updating Asset Extended Details:"+fmt.Sprintf("%v", err), false)
-			logger(1, "API Call XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "Unable to read response from Hornbill instance when Updating Asset Extended Details:"+err.Error()))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			mutexCounters.Lock()
 			counters.updateRelatedFailed++
 			mutexCounters.Unlock()
 			return false
 		}
+
 		if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" && !strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected") {
-			logger(3, "Unable to Update Asset Extended Details: "+xmlResponExt.State.ErrorRet, false)
-			logger(1, "API Call XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "Unable to Update Asset Extended Details: "+xmlResponExt.State.ErrorRet))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			mutexCounters.Lock()
 			counters.updateRelatedFailed++
 			mutexCounters.Unlock()
@@ -853,6 +891,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 
 		if xmlRespon.MethodResult == "ok" {
 			boolRecordUpdated = true
+			buffer.WriteString(loggerGen(1, "Asset record extended details updated successfully: "+strAssetID))
 		}
 
 		if boolRecordUpdated {
@@ -863,26 +902,31 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 			espXmlmc.OpenElement("primaryEntityData")
 			espXmlmc.OpenElement("record")
 			espXmlmc.SetParam("h_pk_asset_id", strAssetID)
-			espXmlmc.SetParam("h_last_updated", APITimeNow)
+			espXmlmc.SetParam("h_last_updated", time.Now().Format("2006-01-02 15:04:05"))
 			espXmlmc.SetParam("h_last_updated_by", "Import - Update")
 			espXmlmc.CloseElement("record")
 			espXmlmc.CloseElement("primaryEntityData")
 			var XMLSTRING = espXmlmc.GetParam()
-			debugLog("Asset Update LAST UPDATE XML:", XMLSTRING)
+			debugLog(buffer, "Asset Update LAST UPDATE XML:", XMLSTRING)
+
 			XMLUpdate, xmlmcErr := espXmlmc.Invoke("data", "entityUpdateRecord")
 			if xmlmcErr != nil {
-				logger(4, "API Call failed when setting Last Updated values:"+fmt.Sprintf("%v", xmlmcErr), false)
-				logger(1, "Asset Last Updated XML: "+XMLSTRING, false)
-			}
-			var xmlRespon xmlmcResponse
-			err := xml.Unmarshal([]byte(XMLUpdate), &xmlRespon)
-			if err != nil {
-				logger(4, "Unable to read response from Hornbill instance when setting Last Updated values:"+fmt.Sprintf("%v", err), false)
-				logger(1, "Asset Last Updated XML: "+XMLSTRING, false)
-			}
-			if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" {
-				logger(3, "Unable to set Last Updated details for asset: "+xmlRespon.State.ErrorRet, false)
-				logger(1, "Asset Last Updated XML: "+XMLSTRING, false)
+				buffer.WriteString(loggerGen(4, "API Call failed when setting Last Updated values:"+xmlmcErr.Error()))
+				buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+			} else {
+				var xmlRespon xmlmcResponse
+				err := xml.Unmarshal([]byte(XMLUpdate), &xmlRespon)
+				if err != nil {
+					buffer.WriteString(loggerGen(4, "Unable to read response from Hornbill instance when setting Last Updated values:"+err.Error()))
+					buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+				} else {
+					if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" {
+						buffer.WriteString(loggerGen(4, "Unable to set Last Updated details for asset: "+xmlRespon.State.ErrorRet))
+						buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+					} else {
+						buffer.WriteString(loggerGen(1, "Asset Last Updated date & user updated successfully: "+strAssetID))
+					}
+				}
 			}
 			mutexCounters.Lock()
 			counters.updated++
@@ -894,7 +938,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		mutexCounters.Lock()
 		counters.updateSkipped++
 		mutexCounters.Unlock()
-		logger(1, "Asset Update XML "+XMLSTRING, false)
+		buffer.WriteString(loggerGen(1, "Asset Update XML "+XMLSTRING))
 		espXmlmc.ClearParam()
 	}
 	return true

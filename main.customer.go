@@ -1,121 +1,35 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"strconv"
 	"strings"
 
-	apiLib "github.com/hornbill/goApiLib"
 	"github.com/hornbill/pb"
 )
-
-var (
-	hornbillImport *apiLib.XmlmcInstStruct
-	pageSize       int
-)
-
-func initXMLMC() {
-
-	hornbillImport = apiLib.NewXmlmcInstance(SQLImportConf.InstanceID)
-	hornbillImport.SetAPIKey(SQLImportConf.APIKey)
-	hornbillImport.SetTimeout(60)
-	hornbillImport.SetJSONResponse(true)
-
-	pageSize = 0
-
-	if pageSize == 0 {
-		pageSize = 100
-	}
-}
-
-// customerInCache -- Function to check if passed-thorugh Customer ID has been cached
-// if so, pass back the Customer Name
-func customerInCache(customerID string) (bool, string, string) {
-	boolReturn := false
-	customerName := ""
-	customerIDReturn := ""
-	mutexCustomers.Lock()
-	//-- Check if in Cache
-	for _, customer := range Customers {
-		if strings.EqualFold(customer.CustomerID, customerID) {
-			boolReturn = true
-			customerName = customer.CustomerName
-			//customerIDReturn = customer.CustomerID
-			customerIDReturn = customer.CustomerHandle
-			break
-		}
-	}
-	mutexCustomers.Unlock()
-	return boolReturn, customerName, customerIDReturn
-}
-
-// seachCustomer -- Function to check if passed-through customer name is on the instance
-func searchCustomer(custID string, espXmlmc *apiLib.XmlmcInstStruct) (bool, string, string) {
-	boolReturn := false
-	custNameReturn := ""
-	custIDReturn := ""
-	//Get Analyst Info
-	espXmlmc.SetParam("customerId", custID)
-	espXmlmc.SetParam("customerType", "0")
-	var XMLSTRING = espXmlmc.GetParam()
-	XMLCustomerSearch, xmlmcErr := espXmlmc.Invoke("apps/"+appServiceManager, "shrGetCustomerDetails")
-	if xmlmcErr != nil {
-		logger(4, "Unable to Search for Customer ["+custID+"]: "+fmt.Sprintf("%v", xmlmcErr), true)
-		logger(1, "API XML: "+XMLSTRING, false)
-	}
-
-	var xmlRespon xmlmcCustomerListResponse
-	err := xml.Unmarshal([]byte(XMLCustomerSearch), &xmlRespon)
-	if err != nil {
-		logger(4, "Unable to Search for Customer ["+custID+"]: "+fmt.Sprintf("%v", err), false)
-		logger(1, "API XML: "+XMLSTRING, false)
-	} else {
-		if xmlRespon.MethodResult != "ok" {
-			//Customer most likely does not exist
-			logger(4, "Unable to Search for Customer ["+custID+"]: "+xmlRespon.State.ErrorRet, false)
-			logger(1, "API XML: "+XMLSTRING, false)
-		} else {
-			//-- Check Response
-			if xmlRespon.CustomerFirstName != "" {
-				boolReturn = true
-				//-- Add Customer to Cache
-				var newCustomerForCache customerListStruct
-				newCustomerForCache.CustomerID = xmlRespon.CustomerID
-				//				newCustomerForCache.Handle = xmlRespon.CustomerID
-				newCustomerForCache.CustomerName = xmlRespon.CustomerFirstName + " " + xmlRespon.CustomerLastName
-				custNameReturn = newCustomerForCache.CustomerName
-				custIDReturn = newCustomerForCache.CustomerID
-				customerNamedMap := []customerListStruct{newCustomerForCache}
-				mutexCustomers.Lock()
-				Customers = append(Customers, customerNamedMap...)
-				mutexCustomers.Unlock()
-			}
-		}
-	}
-	return boolReturn, custNameReturn, custIDReturn
-}
 
 func loadUsers() {
 	//-- Init One connection to Hornbill to load all data
 	initXMLMC()
-	logger(1, "Loading Users from Hornbill", false)
+	logger(1, "Loading Users from Hornbill", false, true)
 
 	count := getCount("getUserAccountsList")
-	logger(1, "getUserAccountsList Count: "+fmt.Sprintf("%d", count), false)
+	logger(1, "getUserAccountsList Count: "+strconv.FormatUint(count, 10), false, true)
 	getUserAccountList(count)
 
-	logger(1, "Users Loaded: "+fmt.Sprintf("%d", len(Customers)), false)
+	logger(1, "Users Loaded: "+strconv.Itoa(len(Customers)), false, true)
 }
 
 func getUserAccountList(count uint64) {
 	var loopCount uint64
+	pageSize = 1000
 	//-- Init Map
 	//-- Load Results in pages of pageSize
 	bar := pb.StartNew(int(count))
 	for loopCount < count {
-		logger(1, "Loading User Accounts List Offset: "+fmt.Sprintf("%d", loopCount)+"\n", false)
+		logger(1, "Loading User Accounts List Offset: "+fmt.Sprintf("%d", loopCount)+"\n", false, true)
 
 		hornbillImport.SetParam("application", "com.hornbill.core")
 		hornbillImport.SetParam("queryName", "getUserAccountsList")
@@ -127,112 +41,57 @@ func getUserAccountList(count uint64) {
 
 		var JSONResp xmlmcUserListResponse
 		if xmlmcErr != nil {
-			logger(4, "Unable to Query Accounts List "+fmt.Sprintf("%s", xmlmcErr), false)
+			logger(4, "Unable to Query Accounts List "+xmlmcErr.Error(), false, true)
 			break
 		}
 		err := json.Unmarshal([]byte(RespBody), &JSONResp)
 		if err != nil {
-			logger(4, "Unable to Query Accounts List "+fmt.Sprintf("%s", err), false)
+			logger(4, "Unable to Query Accounts List "+err.Error(), false, true)
 			break
 		}
 		if JSONResp.State.Error != "" {
-			logger(4, "Unable to Query Accounts List "+JSONResp.State.Error, false)
+			logger(4, "Unable to Query Accounts List "+JSONResp.State.Error, false, true)
 			break
 		}
 		//-- Push into Map
-
-		switch SQLImportConf.HornbillUserIDColumn {
-		case "h_employee_id":
-			{
-				for index := range JSONResp.Params.RowData.Row {
-					var newCustomerForCache customerListStruct
+		for index := range JSONResp.Params.RowData.Row {
+			var newCustomerForCache customerListStruct
+			switch SQLImportConf.HornbillUserIDColumn {
+			case "h_employee_id":
+				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HEmployeeID
-					newCustomerForCache.CustomerHandle = JSONResp.Params.RowData.Row[index].HUserID
-					newCustomerForCache.CustomerName = JSONResp.Params.RowData.Row[index].HFirstName + " " + JSONResp.Params.RowData.Row[index].HLastName
-					customerNamedMap := []customerListStruct{newCustomerForCache}
-					mutexCustomers.Lock()
-					Customers = append(Customers, customerNamedMap...)
-					mutexCustomers.Unlock()
 				}
-			}
-		case "h_login_id":
-			{
-				for index := range JSONResp.Params.RowData.Row {
-					var newCustomerForCache customerListStruct
+			case "h_login_id":
+				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HLoginID
-					newCustomerForCache.CustomerHandle = JSONResp.Params.RowData.Row[index].HUserID
-					newCustomerForCache.CustomerName = JSONResp.Params.RowData.Row[index].HFirstName + " " + JSONResp.Params.RowData.Row[index].HLastName
-					customerNamedMap := []customerListStruct{newCustomerForCache}
-					mutexCustomers.Lock()
-					Customers = append(Customers, customerNamedMap...)
-					mutexCustomers.Unlock()
 				}
-			}
-		case "h_email":
-			{
-				for index := range JSONResp.Params.RowData.Row {
-					var newCustomerForCache customerListStruct
+			case "h_email":
+				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HEmail
-					newCustomerForCache.CustomerHandle = JSONResp.Params.RowData.Row[index].HUserID
-					newCustomerForCache.CustomerName = JSONResp.Params.RowData.Row[index].HFirstName + " " + JSONResp.Params.RowData.Row[index].HLastName
-					customerNamedMap := []customerListStruct{newCustomerForCache}
-					mutexCustomers.Lock()
-					Customers = append(Customers, customerNamedMap...)
-					mutexCustomers.Unlock()
 				}
-			}
-		case "h_name":
-			{
-				for index := range JSONResp.Params.RowData.Row {
-					var newCustomerForCache customerListStruct
+			case "h_name":
+				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HName
-					newCustomerForCache.CustomerHandle = JSONResp.Params.RowData.Row[index].HUserID
-					newCustomerForCache.CustomerName = JSONResp.Params.RowData.Row[index].HFirstName + " " + JSONResp.Params.RowData.Row[index].HLastName
-					customerNamedMap := []customerListStruct{newCustomerForCache}
-					mutexCustomers.Lock()
-					Customers = append(Customers, customerNamedMap...)
-					mutexCustomers.Unlock()
 				}
-			}
-		case "h_attrib_1":
-			{
-				for index := range JSONResp.Params.RowData.Row {
-					var newCustomerForCache customerListStruct
+			case "h_attrib_1":
+				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HAttrib1
-					newCustomerForCache.CustomerHandle = JSONResp.Params.RowData.Row[index].HUserID
-					newCustomerForCache.CustomerName = JSONResp.Params.RowData.Row[index].HFirstName + " " + JSONResp.Params.RowData.Row[index].HLastName
-					customerNamedMap := []customerListStruct{newCustomerForCache}
-					mutexCustomers.Lock()
-					Customers = append(Customers, customerNamedMap...)
-					mutexCustomers.Unlock()
 				}
-			}
-		case "h_user_id":
-			{ // as Go Switch doesn't fall through
-				for index := range JSONResp.Params.RowData.Row {
-					var newCustomerForCache customerListStruct
+			case "h_user_id":
+				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HUserID
-					newCustomerForCache.CustomerHandle = JSONResp.Params.RowData.Row[index].HUserID
-					newCustomerForCache.CustomerName = JSONResp.Params.RowData.Row[index].HFirstName + " " + JSONResp.Params.RowData.Row[index].HLastName
-					customerNamedMap := []customerListStruct{newCustomerForCache}
-					mutexCustomers.Lock()
-					Customers = append(Customers, customerNamedMap...)
-					mutexCustomers.Unlock()
 				}
-			}
-		default:
-			{
-				for index := range JSONResp.Params.RowData.Row {
-					var newCustomerForCache customerListStruct
+			default:
+				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HUserID
-					newCustomerForCache.CustomerHandle = JSONResp.Params.RowData.Row[index].HUserID
-					newCustomerForCache.CustomerName = JSONResp.Params.RowData.Row[index].HFirstName + " " + JSONResp.Params.RowData.Row[index].HLastName
-					customerNamedMap := []customerListStruct{newCustomerForCache}
-					mutexCustomers.Lock()
-					Customers = append(Customers, customerNamedMap...)
-					mutexCustomers.Unlock()
 				}
 			}
+			newCustomerForCache.CustomerHandle = JSONResp.Params.RowData.Row[index].HUserID
+			newCustomerForCache.CustomerName = JSONResp.Params.RowData.Row[index].HFirstName + " " + JSONResp.Params.RowData.Row[index].HLastName
+			customerNamedMap := []customerListStruct{newCustomerForCache}
+			mutexCustomers.Lock()
+			Customers = append(Customers, customerNamedMap...)
+			mutexCustomers.Unlock()
 		}
 
 		// Add 100
@@ -258,16 +117,16 @@ func getCount(query string) uint64 {
 
 	var JSONResp xmlmcCountResponse
 	if xmlmcErr != nil {
-		logger(4, "Unable to run Query ["+query+"] "+fmt.Sprintf("%s", xmlmcErr), false)
+		logger(4, "Unable to run Query ["+query+"] "+xmlmcErr.Error(), false, true)
 		return 0
 	}
 	err := json.Unmarshal([]byte(RespBody), &JSONResp)
 	if err != nil {
-		logger(4, "Unable to run Query ["+query+"] "+fmt.Sprintf("%s", err), false)
+		logger(4, "Unable to run Query ["+query+"] "+err.Error(), false, true)
 		return 0
 	}
 	if JSONResp.State.Error != "" {
-		logger(4, "Unable to run Query ["+query+"] "+JSONResp.State.Error, false)
+		logger(4, "Unable to run Query ["+query+"] "+JSONResp.State.Error, false, true)
 		return 0
 	}
 
@@ -275,8 +134,28 @@ func getCount(query string) uint64 {
 	count, errC := strconv.ParseUint(JSONResp.Params.RowData.Row[0].Count, 10, 16)
 	//-- Check for Error
 	if errC != nil {
-		logger(4, "Unable to get Count for Query ["+query+"] "+fmt.Sprintf("%s", err), false)
+		logger(4, "Unable to get Count for Query ["+query+"] "+err.Error(), false, true)
 		return 0
 	}
 	return count
+}
+
+func getUserID(u map[string]interface{}, userCol string, buffer *bytes.Buffer) (userID, userURN, userName string) {
+	userMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping[userCol])
+	userID = getFieldValue(userCol, userMapping, u, buffer)
+	if userID != "" && userID != "<nil>" && userID != "__clear__" {
+		mutexCustomers.Lock()
+		for _, customer := range Customers {
+			if strings.EqualFold(customer.CustomerID, userID) {
+				userName = customer.CustomerName
+				break
+			}
+		}
+		mutexCustomers.Unlock()
+	}
+	if userName != "" {
+		userURN = "urn:sys:0:" + userName + ":" + userID
+	}
+	debugLog(buffer, "User Mapping:", userCol, ":", userMapping, ":", userID, ":", userName, ":", userURN)
+	return
 }

@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
+
 	//SQL Package
 	"github.com/jmoiron/sqlx"
 )
@@ -12,13 +16,13 @@ func buildConnectionString() string {
 	if SQLImportConf.SQLConf.Database == "" ||
 		SQLImportConf.SQLConf.Authentication == "SQL" && (SQLImportConf.SQLConf.UserName == "" || SQLImportConf.SQLConf.Password == "") {
 		//Conf not set - log error and return empty string
-		logger(4, "Database configuration not set.", true)
+		logger(4, "Database configuration not set.", true, true)
 		return ""
 	}
 	if SQLImportConf.SQLConf.Driver != "odbc" {
-		logger(1, "Connecting to Database Server: "+SQLImportConf.SQLConf.Server, true)
+		logger(1, "Connecting to Database Server: "+SQLImportConf.SQLConf.Server, true, true)
 	} else {
-		logger(1, "Connecting to ODBC Data Source: "+SQLImportConf.SQLConf.Database, true)
+		logger(1, "Connecting to ODBC Data Source: "+SQLImportConf.SQLConf.Database, true, true)
 	}
 
 	connectString := ""
@@ -63,39 +67,44 @@ func buildConnectionString() string {
 	return connectString
 }
 
-//queryDatabase -- Query Asset Database for assets of current type
-//-- Builds map of assets, returns true if successful
-func queryDatabase(sqlAppend, assetTypeName string) (bool, []map[string]interface{}) {
-	//Clear existing Asset Map down
-	var ArrAssetMaps []map[string]interface{}
-	connString := buildConnectionString()
-	if connString == "" {
-		logger(4, " [DATABASE] Database Connection String Empty. Check the SQLConf section of your configuration.", true)
-		return false, ArrAssetMaps
-	}
-	//Connect to the JSON specified DB
-	db, err := sqlx.Open(SQLImportConf.SQLConf.Driver, connString)
+func makeDBConnection() (db *sqlx.DB, err error) {
+	//Connect to the config specified DB
+	db, err = sqlx.Open(SQLImportConf.SQLConf.Driver, connString)
 	if err != nil {
-		logger(4, " [DATABASE] Database Connection Error: "+fmt.Sprintf("%v", err), true)
-		return false, ArrAssetMaps
+		err = errors.New("DB Connection Error: " + err.Error())
+		return
 	}
-	defer db.Close()
 	//Check connection is open
 	err = db.Ping()
 	if err != nil {
-		logger(4, " [DATABASE] [PING] Database Ping Error: "+fmt.Sprintf("%v", err), true)
-		return false, ArrAssetMaps
+		err = errors.New("DB Ping Error: " + err.Error())
+		return
 	}
-	logger(3, "[DATABASE] Connection Successful", true)
-	logger(3, "[DATABASE] Running database query for "+assetTypeName+" assets. Please wait...", true)
+	return
+}
+
+//queryAssets -- Query Asset Database for assets of current type
+//-- Builds map of assets, returns true if successful
+func queryAssets(sqlAppend string, assetType assetTypesStruct) (bool, map[string]map[string]interface{}) {
+	//Initialise Asset Map
+	arrAssetMaps := make(map[string]map[string]interface{})
+
+	db, err := makeDBConnection()
+	if err != nil {
+		logger(4, "[DATABASE] "+err.Error(), true, true)
+		return false, arrAssetMaps
+	}
+	defer db.Close()
+	logger(1, " ", false, false)
+	logger(3, "[DATABASE] Running database query for "+assetType.AssetType+" assets. Please wait...", true, true)
 	//build query
 	sqlAssetQuery := BaseSQLQuery + " " + sqlAppend
-	logger(3, "[DATABASE] Query for "+assetTypeName+" assets:"+sqlAssetQuery, false)
+	logger(3, "[DATABASE] Query for "+assetType.AssetType+" assets:"+sqlAssetQuery, false, true)
 	//Run Query
 	rows, err := db.Queryx(sqlAssetQuery)
 	if err != nil {
-		logger(4, " [DATABASE] Database Query Error: "+fmt.Sprintf("%v", err), true)
-		return false, ArrAssetMaps
+		logger(4, " [DATABASE] Database Query Error: "+fmt.Sprintf("%v", err), true, true)
+		return false, arrAssetMaps
 	}
 	defer rows.Close()
 
@@ -107,26 +116,61 @@ func queryDatabase(sqlAppend, assetTypeName string) (bool, []map[string]interfac
 		results := make(map[string]interface{})
 		err = rows.MapScan(results)
 		if err != nil {
-			logger(4, " [DATABASE] Data Unmarshal Error: "+fmt.Sprintf("%v", err), true)
+			logger(4, " [DATABASE] Data Unmarshal Error: "+fmt.Sprintf("%v", err), true, true)
 		} else {
 			//Stick marshalled data map in to parent slice
-			ArrAssetMaps = append(ArrAssetMaps, results)
+			arrAssetMaps[fmt.Sprintf("%s", results[assetType.AssetIdentifier.DBColumn])] = results
 			intAssetSuccess++
 		}
 	}
-	logger(3, "[DATABASE] "+strconv.Itoa(intAssetSuccess)+" of "+strconv.Itoa(intAssetCount)+" returned assets successfully retrieved ready for processing.", true)
-	return true, ArrAssetMaps
+	logger(3, "[DATABASE] "+strconv.Itoa(intAssetSuccess)+" of "+strconv.Itoa(intAssetCount)+" returned assets successfully retrieved ready for processing.", true, true)
+	return true, arrAssetMaps
 }
 
-func getFieldFromDB(assetIDIdent string, assetMap map[string]interface{}) string {
-	//Get the asset ID for the current record
-	interfaceContent := assetMap[assetIDIdent]
-	var assetID string
-	switch v := interfaceContent.(type) {
-	case []uint8:
-		assetID = string(v)
-	default:
-		assetID = fmt.Sprintf("%v", assetMap[assetIDIdent])
+func querySoftwareInventoryRecords(assetID string, assetTypeDetails assetTypesStruct, db *sqlx.DB, buffer *bytes.Buffer) (map[string]map[string]interface{}, string, error) {
+	var (
+		recordMap []map[string]interface{}
+		returnMap = make(map[string]map[string]interface{})
+		hash      string
+		err       error
+	)
+
+	buffer.WriteString(loggerGen(3, "[DATABASE] Running database query for software inventory records for asset ["+assetID+"]"))
+	//build query
+	sqlAssetQuery := strings.ReplaceAll(assetTypeDetails.SoftwareInventory.Query, "{{AssetID}}", assetID)
+	buffer.WriteString(loggerGen(3, "[DATABASE] Query: "+sqlAssetQuery))
+
+	//Run Query
+	rows, err := db.Queryx(sqlAssetQuery)
+	if err != nil {
+		err = errors.New("[DATABASE] Database Query Error: " + err.Error())
+		return returnMap, hash, err
 	}
-	return assetID
+	defer rows.Close()
+
+	//Build map full of software records
+	intAssetCount := 0
+
+	for rows.Next() {
+		intAssetCount++
+		results := make(map[string]interface{})
+		err = rows.MapScan(results)
+		if err != nil {
+			err = errors.New("[DATABASE] Data Unmarshal Error: " + err.Error())
+			return returnMap, hash, err
+		} else {
+			//Stick marshalled data map in to parent slice
+			recordMap = append(recordMap, results)
+		}
+	}
+	recordsHash := Hash(recordMap)
+	hash = fmt.Sprintf("%v", recordsHash)
+
+	//Now process return map
+	for _, v := range recordMap {
+		returnMap[fmt.Sprintf("%s", v[assetTypeDetails.SoftwareInventory.AppIDColumn])] = v
+	}
+	buffer.WriteString(loggerGen(3, "[DATABASE] "+strconv.Itoa(len(recordMap))+" of "+strconv.Itoa(intAssetCount)+" returned software inventory records successfully retrieved"))
+	return returnMap, hash, err
+
 }

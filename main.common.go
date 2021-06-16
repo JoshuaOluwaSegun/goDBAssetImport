@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -9,16 +12,31 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	apiLib "github.com/hornbill/goApiLib"
 )
 
+func initXMLMC() {
+
+	hornbillImport = apiLib.NewXmlmcInstance(SQLImportConf.InstanceID)
+	hornbillImport.SetAPIKey(SQLImportConf.APIKey)
+	hornbillImport.SetTimeout(60)
+	hornbillImport.SetJSONResponse(true)
+
+	pageSize = 0
+
+	if pageSize == 0 {
+		pageSize = 100
+	}
+}
+
 // getFieldValue --Retrieve field value from mapping via SQL record map
-func getFieldValue(k string, v string, u map[string]interface{}) string {
-	debugLog("getFieldValue:", k, ":", v)
+func getFieldValue(k string, v string, u map[string]interface{}, buffer *bytes.Buffer) string {
+	debugLog(buffer, "getFieldValue:", k, ":", v)
 	fieldMap := v
 	//-- Match $variable from String
 	re1, err := regexp.Compile(`\[(.*?)\]`)
 	if err != nil {
-		logger(4, err.Error(), false)
+		buffer.WriteString(loggerGen(4, err.Error()))
 		return fieldMap
 	}
 
@@ -26,46 +44,38 @@ func getFieldValue(k string, v string, u map[string]interface{}) string {
 
 	//-- Loop Matches
 	for _, val := range result {
-		debugLog("val:", val)
+		debugLog(buffer, "val:", val)
 		valFieldMap := ""
 		valFieldMap = strings.Replace(val, "[", "", 1)
 		valFieldMap = strings.Replace(valFieldMap, "]", "", 1)
-		debugLog("valFieldMap 1:", valFieldMap)
+		debugLog(buffer, "valFieldMap 1:", valFieldMap)
 		if valFieldMap == "HBAssetType" {
 			valFieldMap = StrAssetType
+		} else if u[valFieldMap] != nil {
+			valFieldMap = iToS(u[valFieldMap])
 		} else {
-			if u[valFieldMap] == nil {
-				valFieldMap = ""
-			} else {
-				interfaceContent := u[valFieldMap]
-				switch v := interfaceContent.(type) {
-				case []uint8:
-					valFieldMap = string(v)
-				default:
-					valFieldMap = fmt.Sprintf("%v", u[valFieldMap])
-				}
-			}
+			valFieldMap = val
 		}
-		debugLog("valFieldMap 2:", valFieldMap)
+		debugLog(buffer, "valFieldMap 2:", valFieldMap)
 		if valFieldMap != "" {
 			if strings.Contains(strings.ToLower(k), "date") {
 				valFieldMap = checkDateString(valFieldMap)
 			}
-			if strings.Contains(valFieldMap, "[") {
+			if strings.HasPrefix(valFieldMap, "[") && strings.HasSuffix(valFieldMap, "]") && valFieldMap == fieldMap {
 				valFieldMap = ""
 			}
 		}
-		debugLog("valFieldMap 3:", valFieldMap)
-		debugLog(fieldMap, ":", val, ":", valFieldMap)
+		debugLog(buffer, "valFieldMap 3:", valFieldMap)
+		debugLog(buffer, fieldMap, ":", val, ":", valFieldMap)
 		fieldMap = strings.Replace(fieldMap, val, valFieldMap, 1)
-		debugLog("fieldMap:", fieldMap)
+		debugLog(buffer, "fieldMap:", fieldMap)
 	}
 
 	return fieldMap
 }
 
 // logger -- function to append to the current log file
-func logger(t int, s string, outputtoCLI bool) {
+func logger(t int, s string, outputtoCLI bool, outputToEsp bool) {
 	//-- Current working dir
 	cwd, _ := os.Getwd()
 
@@ -82,7 +92,7 @@ func logger(t int, s string, outputtoCLI bool) {
 	}
 
 	//-- Log File
-	logFileName := logPath + "/Asset_Import_" + TimeNow + "_" + strconv.Itoa(logFilePart) + ".log"
+	logFileName := logPath + "/Asset_Import_" + startTime.Format("20060102150405") + "_" + strconv.Itoa(logFilePart) + ".log"
 	if maxLogFileSize > 0 {
 		//Check log file size
 		fileLoad, e := os.Stat(logFileName)
@@ -92,7 +102,7 @@ func logger(t int, s string, outputtoCLI bool) {
 			fileSize := fileLoad.Size()
 			if fileSize > maxLogFileSize {
 				logFilePart++
-				logFileName = logPath + "/Asset_Import_" + TimeNow + "_" + strconv.Itoa(logFilePart) + ".log"
+				logFileName = logPath + "/Asset_Import_" + startTime.Format("20060102150405") + "_" + strconv.Itoa(logFilePart) + ".log"
 			}
 		}
 	}
@@ -105,41 +115,87 @@ func logger(t int, s string, outputtoCLI bool) {
 	}
 	// don't forget to close it
 	defer f.Close()
-	var errorLogPrefix string
+	var (
+		errorLogPrefix string
+		espLogType     string
+	)
 	//-- Create Log Entry
 	switch t {
 	case 1:
 		errorLogPrefix = "[DEBUG] "
+		espLogType = "debug"
 		if outputtoCLI {
 			color.Set(color.FgGreen)
 			defer color.Unset()
 		}
 	case 2:
 		errorLogPrefix = "[MESSAGE] "
+		espLogType = "notice"
 		if outputtoCLI {
 			color.Set(color.FgGreen)
 			defer color.Unset()
 		}
 	case 3:
+		espLogType = "notice"
 		if outputtoCLI {
 			color.Set(color.FgGreen)
 			defer color.Unset()
 		}
 	case 4:
 		errorLogPrefix = "[ERROR] "
+		espLogType = "error"
 		if outputtoCLI {
 			color.Set(color.FgRed)
+			defer color.Unset()
+		}
+	case 5:
+		errorLogPrefix = "[WARNING] "
+		espLogType = "warn"
+		if outputtoCLI {
+			color.Set(color.FgYellow)
 			defer color.Unset()
 		}
 	}
 	if outputtoCLI {
 		fmt.Printf("%v \n", errorLogPrefix+s)
 	}
+	if outputToEsp {
+		espLogger(s, espLogType)
+	}
 	mutex.Lock()
 	// assign it to the standard logger
 	log.SetOutput(f)
 	log.Println(errorLogPrefix + s)
 	mutex.Unlock()
+}
+
+func loggerGen(t int, s string) string {
+
+	var errorLogPrefix = ""
+	//-- Create Log Entry
+	switch t {
+	case 1:
+		errorLogPrefix = "[DEBUG] "
+	case 2:
+		errorLogPrefix = "[MESSAGE] "
+	case 3:
+		errorLogPrefix = ""
+	case 4:
+		errorLogPrefix = "[ERROR] "
+	case 5:
+		errorLogPrefix = "[WARNING] "
+	}
+	return errorLogPrefix + s + "\n\r"
+}
+func loggerWriteBuffer(s string) {
+	if s != "" {
+		logLines := strings.Split(s, "\n\r")
+		for _, line := range logLines {
+			if line != "" {
+				logger(0, line, false, false)
+			}
+		}
+	}
 }
 
 // checkDateString - returns date from supplied string
@@ -149,8 +205,50 @@ func checkDateString(strDate string) string {
 	return strNewDate
 }
 
-func debugLog(debugStrings ...string) {
+func debugLog(buffer *bytes.Buffer, debugStrings ...string) {
 	if configDebug {
-		logger(1, strings.Join(debugStrings, " "), false)
+		if buffer == nil {
+			logger(1, strings.Join(debugStrings, " "), false, false)
+		} else {
+			buffer.WriteString(loggerGen(1, strings.Join(debugStrings, " ")))
+		}
 	}
+}
+
+func iToS(interfaceVal interface{}) (strVal string) {
+	if interfaceVal == nil {
+		return
+	}
+
+	switch v := interfaceVal.(type) {
+	case []uint8:
+		strVal = string(v)
+	default:
+		strVal = fmt.Sprintf("%v", interfaceVal)
+	}
+	return
+}
+
+func Hash(arr []map[string]interface{}) string {
+	arrBytes := []byte{}
+	for _, item := range arr {
+		jsonBytes, _ := json.Marshal(item)
+		arrBytes = append(arrBytes, jsonBytes...)
+	}
+	has := md5.Sum(arrBytes)
+
+	md5str := fmt.Sprintf("%x", has)
+	return md5str
+}
+
+// espLogger -- Log to ESP
+func espLogger(message string, severity string) {
+	if configDryRun {
+		message = "[DRYRUN] " + message
+	}
+	hornbillImport.SetParam("fileName", appName)
+	hornbillImport.SetParam("group", "general")
+	hornbillImport.SetParam("severity", severity)
+	hornbillImport.SetParam("message", message)
+	hornbillImport.Invoke("system", "logMessage")
 }

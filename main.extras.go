@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"strings"
@@ -38,15 +39,16 @@ func getApplications() {
 
 	XMLSiteSearch, xmlmcErr := espXmlmc.Invoke("session", "getApplicationList")
 	if xmlmcErr != nil {
-		logger(4, "API Call failed when trying to bring asset in policy:"+fmt.Sprintf("%v", xmlmcErr), false)
+		logger(4, "API Call failed when trying to get application list:"+fmt.Sprintf("%v", xmlmcErr), true, true)
+		return
 	}
 	var xmlRespon xmlmcApplicationResponse
 	err := xml.Unmarshal([]byte(XMLSiteSearch), &xmlRespon)
 	if err != nil {
-		logger(3, "Failed to read applications: "+fmt.Sprintf("%v", err), true)
+		logger(3, "Failed to read applications: "+fmt.Sprintf("%v", err), true, true)
 	} else {
 		if xmlRespon.MethodResult != "ok" {
-			logger(3, "Failed to deal with applications: "+xmlRespon.State.ErrorRet, true)
+			logger(3, "Failed to deal with applications: "+xmlRespon.State.ErrorRet, true, true)
 		} else {
 			var l = len(xmlRespon.Apps)
 			for i := 0; i < l; i++ {
@@ -58,7 +60,7 @@ func getApplications() {
 }
 
 // connectSupplier -- Connect a Supplier to an asset
-func connectSupplier(assetId string, supplierId string, espXmlmc *apiLib.XmlmcInstStruct) bool {
+func connectSupplier(assetId string, supplierId string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes.Buffer) bool {
 	boolReturn := false
 	//--
 	espXmlmc.SetParam("supplierId", supplierId)
@@ -70,25 +72,28 @@ func connectSupplier(assetId string, supplierId string, espXmlmc *apiLib.XmlmcIn
 
 		XMLSiteSearch, xmlmcErr := espXmlmc.Invoke("apps/com.hornbill.suppliermanager/SupplierAssets", "addSupplierAsset")
 		if xmlmcErr != nil {
-			logger(4, "API Call failed when matching Asset to Supplier:"+fmt.Sprintf("%v", xmlmcErr), false)
-			logger(1, "API XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "API Call failed when matching Asset to Supplier:"+xmlmcErr.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
 		}
 		var xmlRespon xmlmcResponse
 
 		err := xml.Unmarshal([]byte(XMLSiteSearch), &xmlRespon)
 		if err != nil {
-			logger(3, "Failed to connect supplier to asset: "+fmt.Sprintf("%v", err), true)
-			logger(1, "API XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "Failed to connect supplier to asset:"+err.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
 		} else {
 			if xmlRespon.MethodResult != "ok" {
-				logger(3, "Failed to connect supplier to asset: "+xmlRespon.State.ErrorRet, true)
-				logger(1, "API XML: "+XMLSTRING, false)
+				buffer.WriteString(loggerGen(4, "Failed to connect supplier to asset:"+xmlRespon.State.ErrorRet))
+				buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+				return boolReturn
 			} else {
 				boolReturn = true
 			}
 		}
 	} else {
-		logger(1, "Asset Supplier XML "+XMLSTRING, false)
+		buffer.WriteString(loggerGen(1, "Asset Supplier XML "+XMLSTRING))
 		espXmlmc.ClearParam()
 		boolReturn = true
 	}
@@ -96,7 +101,7 @@ func connectSupplier(assetId string, supplierId string, espXmlmc *apiLib.XmlmcIn
 }
 
 // addContract -- Associate a contract to an asset
-func addContract(assetId string, contractId string, espXmlmc *apiLib.XmlmcInstStruct) bool {
+func addContract(assetId string, contractId string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes.Buffer) bool {
 	boolReturn := false
 	//--
 	espXmlmc.SetParam("supplierContractId", contractId)
@@ -106,25 +111,28 @@ func addContract(assetId string, contractId string, espXmlmc *apiLib.XmlmcInstSt
 	if !configDryRun {
 		XMLSiteSearch, xmlmcErr := espXmlmc.Invoke("apps/com.hornbill.suppliermanager/SupplierContractAssets", "addSupplierContractAsset")
 		if xmlmcErr != nil {
-			logger(4, "API Call failed when matching Asset to Contract:"+fmt.Sprintf("%v", xmlmcErr), false)
-			logger(1, "API XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "API Call failed when matching Asset to Contract: "+xmlmcErr.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
 		}
 		var xmlRespon xmlmcResponse
 
 		err := xml.Unmarshal([]byte(XMLSiteSearch), &xmlRespon)
 		if err != nil {
-			logger(3, "Failed to connect asset to contract: "+fmt.Sprintf("%v", err), true)
-			logger(1, "API XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "Failed to connect asset to contract: "+err.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
 		} else {
 			if xmlRespon.MethodResult != "ok" {
-				logger(3, "Failed to connect asset to contract: "+xmlRespon.State.ErrorRet, true)
-				logger(1, "API XML: "+XMLSTRING, false)
+				buffer.WriteString(loggerGen(4, "Failed to connect asset to contract: "+xmlRespon.State.ErrorRet))
+				buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+				return boolReturn
 			} else {
 				boolReturn = true
 			}
 		}
 	} else {
-		logger(1, "Asset Contract XML "+XMLSTRING, false)
+		buffer.WriteString(loggerGen(1, "Asset Contract XML "+XMLSTRING))
 		espXmlmc.ClearParam()
 		boolReturn = true
 	}
@@ -132,7 +140,7 @@ func addContract(assetId string, contractId string, espXmlmc *apiLib.XmlmcInstSt
 }
 
 // addInPolicy --
-func addInPolicy(assetId string, espXmlmc *apiLib.XmlmcInstStruct) bool {
+func addInPolicy(assetId string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes.Buffer) bool {
 	boolReturn := false
 
 	espXmlmc.SetParam("application", "com.hornbill.configurationmanager")
@@ -149,81 +157,30 @@ func addInPolicy(assetId string, espXmlmc *apiLib.XmlmcInstStruct) bool {
 	if !configDryRun {
 		XMLSiteSearch, xmlmcErr := espXmlmc.Invoke("data", "entityAddRecord")
 		if xmlmcErr != nil {
-			logger(4, "API Call failed when trying to bring asset in policy:"+fmt.Sprintf("%v", xmlmcErr), false)
-			logger(1, "API XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "API Call failed when trying to bring asset in policy: "+xmlmcErr.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
 		}
 		var xmlRespon xmlmcResponse
 
 		err := xml.Unmarshal([]byte(XMLSiteSearch), &xmlRespon)
 		if err != nil {
-			logger(3, "Failed to bring asset in policy: "+fmt.Sprintf("%v", err), true)
-			logger(1, "API XML: "+XMLSTRING, false)
+			buffer.WriteString(loggerGen(4, "Failed to bring asset in policy: "+err.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
 		} else {
 			if xmlRespon.MethodResult != "ok" {
-				logger(3, "Failed to bring asset into policy: "+xmlRespon.State.ErrorRet, true)
-				logger(1, "API XML: "+XMLSTRING, false)
+				buffer.WriteString(loggerGen(4, "Failed to bring asset in policy: "+xmlRespon.State.ErrorRet))
+				buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+				return boolReturn
 			} else {
 				boolReturn = true
 			}
 		}
 	} else {
-		logger(1, "Asset Policy XML "+XMLSTRING, false)
+		buffer.WriteString(loggerGen(1, "Asset Policy XML: "+XMLSTRING))
 		espXmlmc.ClearParam()
 		boolReturn = true
 	}
 	return boolReturn
 }
-
-//get CIs in Policy
-//entityBrowseRecords2 - https://beta.hornbill.com/hornbill/workspaces/urn:buzz:activityStream:c044d976-b331-483e-a085-1edc63b57f04/
-//add TAG
-func getTagList(espXmlmc *apiLib.XmlmcInstStruct) bool {
-	//var iPage := 1
-	// invoke("library","tagGetList"){
-	//}
-	return true
-} /*
-<methodCall service="library" method="tagGetList">
-<params>
-<tagGroup>urn:tagGroup:serviceManagerAssets</tagGroup>
-<nameFilter>blubber</nameFilter>
-<pageInfo>
-<pageIndex>1</pageIndex>
-<pageSize>100</pageSize>
-</pageInfo></params>
-</methodCall>
-{
-	"@status": true,
-	"params": {
-		"language": "en-GB",
-		"name": [
-			{
-				"tagId": 4,
-				"text": "blubber"
-			}
-		],
-		"maxPages": 1
-	}
-}
-<methodCall service="library" method="tagCreate">
-<params>
-<tagGroup>urn:tagGroup:serviceManagerAssets</tagGroup>
-<tag><text>thisi is a tag</text>
-<language>en-GB</language>
-</tag>
-</params>
-</methodCall>
-{
-	"@status": true,
-	"params": {
-		"tagId": "5"
-	}
-}
-<methodCall service="library" method="tagLinkObject">
-<params>
-<tagGroup>urn:tagGroup:serviceManagerAssets</tagGroup>
-<tagId>5</tagId>
-<objectRefUrn>urn:sys:entity:com.hornbill.servicemanager:Asset:5487</objectRefUrn>
-</params>
-</methodCall>
-*/
