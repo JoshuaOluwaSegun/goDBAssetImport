@@ -71,7 +71,7 @@
         "h_warranty_start": ""
     },
     "AssetTypeFieldMapping": {
-        "h_name": "[AssetName]",
+        "h_name": "{{.AssetName}}",
         "h_description": "",
         "h_idx_ref": "",
         "h_ip_address": "",

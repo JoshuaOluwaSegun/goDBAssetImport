@@ -31,6 +31,7 @@ func main() {
 	flag.BoolVar(&configDryRun, "dryrun", false, "Allow the Import to run without Creating or Updating Assets")
 	flag.StringVar(&configMaxRoutines, "concurrent", "1", "Maximum number of Assets to import concurrently.")
 	flag.BoolVar(&configVersion, "version", false, "Return version and end")
+	flag.BoolVar(&configForceUpdates, "forceupdates", false, "Force updates (ignoring hash calculation; CI only - NOT software (type needs to be set to Update or Both))")
 	flag.Parse()
 
 	//-- If configVersion just output version number and die
@@ -77,15 +78,26 @@ func main() {
 
 	processCaching()
 
+	//Get asset types, process accordingly
+	BaseSQLQuery = SQLImportConf.SQLConf.Query
+	configCSV = (strings.ToLower(SQLImportConf.SQLConf.Driver) == "csv")
+
+	if !(configCSV) {
 	//Build DB connection string
 	connString = buildConnectionString()
 	if connString == "" {
 		logger(4, " [DATABASE] Database Connection String Empty. Check the SQLConf section of your configuration.", true, true)
 		return
 	}
+	}
+	setTemplateFilters()
+	
+	templateFault := checkTemplate()
+	if templateFault {
+		logger(4, " [Template] Issues were found with the template.", true, true)
+		return
+	}
 
-	//Get asset types, process accordingly
-	BaseSQLQuery = SQLImportConf.SQLConf.Query
 	for _, v := range SQLImportConf.AssetTypes {
 		StrAssetType = fmt.Sprintf("%v", v.AssetType)
 		StrSQLAppend = fmt.Sprintf("%v", v.Query)
@@ -96,7 +108,13 @@ func main() {
 		debugLog(nil, "Asset Type and Class:", StrAssetType, strconv.Itoa(AssetTypeID), AssetClass)
 
 		//-- Query Database
-		var boolSQLAssets, arrAssets = queryAssets(StrSQLAppend, v)
+		boolSQLAssets := false
+		var arrAssets map[string]map[string]interface{}
+		if configCSV {
+			boolSQLAssets, arrAssets = getAssetsFromCSV(StrSQLAppend, v)
+		} else {
+			boolSQLAssets, arrAssets = queryAssets(StrSQLAppend, v)
+		}
 		if boolSQLAssets && len(arrAssets) > 0 {
 			//Cache instance asset records of class & type
 			logger(1, "Caching "+v.AssetType+" Asset Records from Hornbill...", true, true)
@@ -152,7 +170,7 @@ func loadConfig() sqlImportConfStruct {
 	file, fileError := os.Open(configurationFilePath)
 	//-- Check For Error Reading File
 	if fileError != nil {
-		logger(4, "Error Opening Configuration File: "+fmt.Sprintf("%v", fileError), true, false)
+		logger(4, "Error Opening Configuration File: "+fileError.Error(), true, false)
 	}
 
 	//-- New Decoder
@@ -163,7 +181,7 @@ func loadConfig() sqlImportConfStruct {
 	err := decoder.Decode(&esqlConf)
 	//-- Error Checking
 	if err != nil {
-		logger(4, "Error Decoding Configuration File: "+fmt.Sprintf("%v", err), true, false)
+		logger(4, "Error Decoding Configuration File: "+err.Error(), true, false)
 	}
 	//-- Return New Congfig
 	return esqlConf

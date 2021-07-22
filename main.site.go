@@ -23,7 +23,7 @@ func loadSites() {
 	RespBody, xmlmcErr := hornbillImport.Invoke("apps/com.hornbill.core", "getSitesList")
 	var JSONResp xmlmcSiteResponse
 	if xmlmcErr != nil {
-		logger(4, "Unable to Query Sites List "+fmt.Sprintf("%s", xmlmcErr), false, true)
+		logger(4, "Unable to Query Sites List "+xmlmcErr.Error(), false, true)
 		return
 	}
 
@@ -50,7 +50,7 @@ func loadSites() {
 
 		RespBody, xmlmcErr = hornbillImport.Invoke("apps/com.hornbill.core", "getSitesList")
 		if xmlmcErr != nil {
-			logger(4, "Unable to Query Sites List "+fmt.Sprintf("%s", xmlmcErr), false, true)
+			logger(4, "Unable to Query Sites List "+xmlmcErr.Error(), false, true)
 			return
 		}
 

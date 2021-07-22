@@ -12,6 +12,10 @@ import (
 )
 
 func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct, db *sqlx.DB, buffer *bytes.Buffer) (softwareRecords map[string]map[string]interface{}, softwareRecordsHash string, err error) {
+	if configCSV {
+		return
+	}
+
 	if assetType.SoftwareInventory.Query != "" && assetType.SoftwareInventory.AssetIDColumn != "" {
 		if val, ok := u[assetType.SoftwareInventory.AssetIDColumn]; ok {
 			swAssetID := iToS(val)

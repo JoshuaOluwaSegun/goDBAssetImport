@@ -103,7 +103,7 @@ func queryAssets(sqlAppend string, assetType assetTypesStruct) (bool, map[string
 	//Run Query
 	rows, err := db.Queryx(sqlAssetQuery)
 	if err != nil {
-		logger(4, " [DATABASE] Database Query Error: "+fmt.Sprintf("%v", err), true, true)
+		logger(4, " [DATABASE] Database Query Error: "+err.Error(), true, true)
 		return false, arrAssetMaps
 	}
 	defer rows.Close()
@@ -116,9 +116,14 @@ func queryAssets(sqlAppend string, assetType assetTypesStruct) (bool, map[string
 		results := make(map[string]interface{})
 		err = rows.MapScan(results)
 		if err != nil {
-			logger(4, " [DATABASE] Data Unmarshal Error: "+fmt.Sprintf("%v", err), true, true)
+			logger(4, " [DATABASE] Data Unmarshal Error: "+err.Error(), true, true)
 		} else {
 			//Stick marshalled data map in to parent slice
+			for k, val := range results {
+				if results[k] != nil {
+					results[k] = iToS(val)
+				}
+			}
 			arrAssetMaps[fmt.Sprintf("%s", results[assetType.AssetIdentifier.DBColumn])] = results
 			intAssetSuccess++
 		}
@@ -159,6 +164,11 @@ func querySoftwareInventoryRecords(assetID string, assetTypeDetails assetTypesSt
 			err = errors.New("[DATABASE] Data Unmarshal Error: " + err.Error())
 			return returnMap, hash, err
 		} else {
+			for k, val := range results {
+				if results[k] != nil {
+					results[k] = iToS(val)
+				}
+			}
 			//Stick marshalled data map in to parent slice
 			recordMap = append(recordMap, results)
 		}

@@ -148,6 +148,7 @@ func getUserID(u map[string]interface{}, userCol string, buffer *bytes.Buffer) (
 		for _, customer := range Customers {
 			if strings.EqualFold(customer.CustomerID, userID) {
 				userName = customer.CustomerName
+				userID = customer.CustomerHandle
 				break
 			}
 		}

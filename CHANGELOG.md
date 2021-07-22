@@ -1,12 +1,25 @@
 # CHANGELOG
 
+## 2.0.0 (July 22nd, 2021)
+
+Changes:
+
+- Incorporated goCSVAssetImport
+- Using golang text templating instead of the square bracket notation. People WILL need to revisit their configuration files. Invariable replacing [sampleColumn] with {{.sampleColumn}}
+
+Features:
+- The ability to bypass the asset comparison check and force updates
+
+Fixes:
+- Fix to related data update counter
+
 ## 1.16.1 (July 6th, 2021)
 
 Change:
 
 - Rebuilt using latest version of goApiLib, to fix possible issue with connections via a proxy
 
-## 1.16.0 (June 17th, 2021)
+## 1.16.0 (June 17th, 2021)
 
 Features: 
 - Added support for importing Software Asset Management records when creating or updating assets

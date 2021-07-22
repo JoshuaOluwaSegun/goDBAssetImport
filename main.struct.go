@@ -10,7 +10,7 @@ import (
 
 //----- Constants -----
 const (
-	version           = "1.16.1"
+	version           = "2.0.0"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
 )
@@ -29,6 +29,8 @@ var (
 	configDebug            bool
 	configDryRun           bool
 	configVersion          bool
+	configForceUpdates     bool
+	configCSV              bool
 	Customers              []customerListStruct
 	startTime              time.Time
 	AssetClass             string
@@ -86,9 +88,16 @@ type sqlImportConfStruct struct {
 	HornbillUserIDColumn     string
 	LogSizeBytes             int64
 	SQLConf                  sqlConfStruct
+	CSVConf                  csvConfStruct
 	AssetTypes               []assetTypesStruct
 	AssetGenericFieldMapping map[string]interface{}
 	AssetTypeFieldMapping    map[string]interface{}
+}
+type csvConfStruct struct {
+	CommaCharacter        string
+	LazyQuotes            bool
+	FieldsPerRecord       int
+	CarriageReturnRemoval bool
 }
 
 type assetTypesStruct struct {

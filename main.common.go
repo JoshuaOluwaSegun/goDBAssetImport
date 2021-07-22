@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/fatih/color"
 	apiLib "github.com/hornbill/goApiLib"
@@ -33,44 +34,28 @@ func initXMLMC() {
 func getFieldValue(k string, v string, u map[string]interface{}, buffer *bytes.Buffer) string {
 	debugLog(buffer, "getFieldValue:", k, ":", v)
 	fieldMap := v
-	//-- Match $variable from String
-	re1, err := regexp.Compile(`\[(.*?)\]`)
-	if err != nil {
-		buffer.WriteString(loggerGen(4, err.Error()))
-		return fieldMap
+	if fieldMap == "[HBAssetType]" {
+		debugLog(buffer, "Returning AssetType:", StrAssetType)
+		return StrAssetType
 	}
 
-	result := re1.FindAllString(fieldMap, 100)
+	t := template.New(fieldMap).Funcs(TemplateFilters)
+	tmpl, _ := t.Parse(fieldMap)
+	buf := bytes.NewBufferString("")
+	tmpl.Execute(buf, u)
+	value := buf.String()
+	debugLog(buffer, "value:", value)
 
-	//-- Loop Matches
-	for _, val := range result {
-		debugLog(buffer, "val:", val)
-		valFieldMap := ""
-		valFieldMap = strings.Replace(val, "[", "", 1)
-		valFieldMap = strings.Replace(valFieldMap, "]", "", 1)
-		debugLog(buffer, "valFieldMap 1:", valFieldMap)
-		if valFieldMap == "HBAssetType" {
-			valFieldMap = StrAssetType
-		} else if u[valFieldMap] != nil {
-			valFieldMap = iToS(u[valFieldMap])
-		} else {
-			valFieldMap = val
+	if value == "%!s(<nil>)" || value == "<no value>" {
+		value = ""
 		}
-		debugLog(buffer, "valFieldMap 2:", valFieldMap)
-		if valFieldMap != "" {
+	fieldMap = value
+	if fieldMap != "" {
 			if strings.Contains(strings.ToLower(k), "date") {
-				valFieldMap = checkDateString(valFieldMap)
+			fieldMap = checkDateString(fieldMap)
 			}
-			if strings.HasPrefix(valFieldMap, "[") && strings.HasSuffix(valFieldMap, "]") && valFieldMap == fieldMap {
-				valFieldMap = ""
 			}
-		}
-		debugLog(buffer, "valFieldMap 3:", valFieldMap)
-		debugLog(buffer, fieldMap, ":", val, ":", valFieldMap)
-		fieldMap = strings.Replace(fieldMap, val, valFieldMap, 1)
-		debugLog(buffer, "fieldMap:", fieldMap)
-	}
-
+	debugLog(buffer, "returning:", fieldMap)
 	return fieldMap
 }
 

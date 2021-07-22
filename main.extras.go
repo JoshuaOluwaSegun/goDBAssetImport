@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/xml"
-	"fmt"
+_	"fmt"
 	"strings"
 
 	apiLib "github.com/hornbill/goApiLib"
@@ -39,13 +39,13 @@ func getApplications() {
 
 	XMLSiteSearch, xmlmcErr := espXmlmc.Invoke("session", "getApplicationList")
 	if xmlmcErr != nil {
-		logger(4, "API Call failed when trying to get application list:"+fmt.Sprintf("%v", xmlmcErr), true, true)
+		logger(4, "API Call failed when trying to get application list:"+xmlmcErr.Error(), true, true)
 		return
 	}
 	var xmlRespon xmlmcApplicationResponse
 	err := xml.Unmarshal([]byte(XMLSiteSearch), &xmlRespon)
 	if err != nil {
-		logger(3, "Failed to read applications: "+fmt.Sprintf("%v", err), true, true)
+		logger(3, "Failed to read applications: "+err.Error(), true, true)
 	} else {
 		if xmlRespon.MethodResult != "ok" {
 			logger(3, "Failed to deal with applications: "+xmlRespon.State.ErrorRet, true, true)

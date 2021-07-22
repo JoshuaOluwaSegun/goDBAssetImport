@@ -75,7 +75,7 @@
         "h_idx_ref": "",
         "h_mac_address": "",
         "h_manufacturer": "",
-        "h_name": "[AssetName]",
+        "h_name": "{{.AssetName}}",
         "h_net_ip_address": "",
         "h_physical_disk_size": "",
         "h_serial_number": ""

@@ -142,7 +142,7 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 	var XMLSTRING = espXmlmc.GetParam()
 	XMLGetMeta, xmlmcErr := espXmlmc.Invoke("data", "entityBrowseRecords2")
 	if xmlmcErr != nil {
-		logger(4, "API Call failed when retrieving Asset Class:"+fmt.Sprintf("%v", xmlmcErr), false, true)
+		logger(4, "API Call failed when retrieving Asset Class:"+xmlmcErr.Error(), false, true)
 		logger(1, "API XML: "+XMLSTRING, false, true)
 	}
 
@@ -202,16 +202,21 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 				boolUpdateSI        = false
 				boolCreate          = false
 				boolActioned        = false
+				err                 error
+				db                  *sqlx.DB
 				buffer              bytes.Buffer
 				softwareRecords     map[string]map[string]interface{}
 				softwareRecordsHash string
 			)
+
+			if !(configCSV) {
 			//One DB connection per worker
-			db, err := makeDBConnection()
+				db, err = makeDBConnection()
 			if err != nil {
 				logger(4, "[DATABASE] "+err.Error(), false, true)
 			}
 			defer db.Close()
+			}
 
 			//One XMLMC connection per worker
 			espXmlmc := apiLib.NewXmlmcInstance(SQLImportConf.InstanceID)
@@ -231,7 +236,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 					hbRecordHash = fmt.Sprintf("%v", asset["h_dsc_cf_fingerprint"])
 					debugLog(&buffer, "Database Asset Record Hash: "+dbRecordHash)
 					debugLog(&buffer, "Hornbill Asset Record Hash: "+hbRecordHash)
-					if hbRecordHash != dbRecordHash {
+					if hbRecordHash != dbRecordHash || configForceUpdates {
 						boolUpdate = true
 					} else {
 						mutexCounters.Lock()
@@ -239,6 +244,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 						mutexCounters.Unlock()
 					}
 
+					if !(configCSV) {
 					//Software inventory records
 					hbSIRecordHash = fmt.Sprintf("%v", asset["h_dsc_sw_fingerprint"])
 					debugLog(&buffer, "Database Asset Software Inventory Record Hash: "+softwareRecordsHash)
@@ -259,13 +265,14 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 						counters.softwareSkipped++
 						mutexCounters.Unlock()
 					}
+					}
 
 				case "mobileDevice":
 					//Main asset record
 					hbRecordHash = fmt.Sprintf("%v", asset["h_dsc_fingerprint"])
 					debugLog(&buffer, "Database Asset Record Hash: "+dbRecordHash)
 					debugLog(&buffer, "Hornbill Asset Record Hash: "+hbRecordHash)
-					if hbRecordHash != dbRecordHash {
+					if hbRecordHash != dbRecordHash || configForceUpdates {
 						boolUpdate = true
 					} else {
 						mutexCounters.Lock()
@@ -273,6 +280,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 						mutexCounters.Unlock()
 					}
 
+					if !(configCSV) {
 					//Software inventory records
 					hbSIRecordHash = fmt.Sprintf("%v", asset["h_dsc_sw_fingerprint"])
 					debugLog(&buffer, "Hornbill Asset Software Inventory Record Hash: "+hbSIRecordHash)
@@ -291,12 +299,13 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 						counters.softwareSkipped++
 						mutexCounters.Unlock()
 					}
+					}
 
 				case "printer":
 					hbRecordHash = fmt.Sprintf("%v", asset["h_dsc_siid"])
 					debugLog(&buffer, "Database Asset Record Hash: "+dbRecordHash)
 					debugLog(&buffer, "Hornbill Asset Record Hash: "+hbRecordHash)
-					if hbRecordHash != dbRecordHash {
+					if hbRecordHash != dbRecordHash || configForceUpdates {
 						boolUpdate = true
 					} else {
 						mutexCounters.Lock()
@@ -312,7 +321,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 					hbRecordHash = fmt.Sprintf("%v", asset["h_dsc_fingerprint"])
 					debugLog(&buffer, "Database Asset Record Hash: "+dbRecordHash)
 					debugLog(&buffer, "Hornbill Asset Record Hash: "+hbRecordHash)
-					if hbRecordHash != dbRecordHash {
+					if hbRecordHash != dbRecordHash || configForceUpdates {
 						boolUpdate = true
 					} else {
 						mutexCounters.Lock()
@@ -337,7 +346,8 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 						usedBy = iToS(assetMap["h_used_by_name"])
 					}
 					buffer.WriteString(loggerGen(1, "Update Asset: "+assetID))
-					boolActioned = updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc, db, &buffer)
+					//boolActioned = updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc, db, &buffer)
+					boolActioned = updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc, &buffer)
 				} else {
 					buffer.WriteString(loggerGen(1, "Asset match found, but OperationType not set to Both or Update"))
 				}
@@ -402,6 +412,8 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 	var assetForHash []map[string]interface{}
 	newAssetHash = Hash(append(assetForHash, u))
 	if assetType.Class == "computer" || assetType.Class == "mobileDevice" {
+
+		if !(configCSV) {
 		softwareRecords, softwareRecordsHash, err = getSoftwareRecords(u, assetType, espXmlmc, db, buffer)
 		if err != nil {
 			buffer.WriteString(loggerGen(4, err.Error()))
@@ -409,6 +421,7 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 			counters.softwareCreateFailed++
 			mutexCounters.Unlock()
 		}
+	}
 	}
 
 	//Get site ID
@@ -625,7 +638,8 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 }
 
 // updateAsset -- Updates Asset record from the passed through map data and asset ID
-func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetID, strNewAssetID, usedBy string, espXmlmc *apiLib.XmlmcInstStruct, db *sqlx.DB, buffer *bytes.Buffer) bool {
+//func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetID, strNewAssetID, usedBy string, espXmlmc *apiLib.XmlmcInstStruct, db *sqlx.DB, buffer *bytes.Buffer) bool {
+func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetID, strNewAssetID, usedBy string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes.Buffer) bool {
 
 	var (
 		newAssetHash      string
@@ -763,7 +777,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 
 		XMLUpdate, xmlmcErr := espXmlmc.Invoke("data", "entityUpdateRecord")
 		if xmlmcErr != nil {
-			buffer.WriteString(loggerGen(4, "API Call failed when Updating Asset:"+fmt.Sprintf("%v", xmlmcErr)))
+			buffer.WriteString(loggerGen(4, "API Call failed when Updating Asset:"+xmlmcErr.Error()))
 			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			mutexCounters.Lock()
 			counters.updateFailed++
@@ -776,7 +790,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		err := xml.Unmarshal([]byte(XMLUpdate), &xmlRespon)
 		if err != nil {
 			buffer.WriteString(loggerGen(4, "Unable to read response from Hornbill instance when Updating Asset:"+err.Error()))
-			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLUpdate))
 			mutexCounters.Lock()
 			counters.updateFailed++
 			mutexCounters.Unlock()
@@ -785,7 +799,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 
 		if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" && !strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected") {
 			buffer.WriteString(loggerGen(4, "Unable to Update Asset: "+xmlRespon.State.ErrorRet))
-			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLUpdate))
 			mutexCounters.Lock()
 			counters.updateFailed++
 			mutexCounters.Unlock()
@@ -793,6 +807,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		}
 
 		if xmlRespon.MethodResult != "ok" && (xmlRespon.State.ErrorRet == "There are no values to update" || strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected")) {
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLUpdate))
 			mutexCounters.Lock()
 			counters.updateSkipped++
 			mutexCounters.Unlock()
@@ -867,29 +882,29 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		err = xml.Unmarshal([]byte(XMLUpdateExt), &xmlResponExt)
 		if err != nil {
 			buffer.WriteString(loggerGen(4, "Unable to read response from Hornbill instance when Updating Asset Extended Details:"+err.Error()))
-			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLUpdateExt))
 			mutexCounters.Lock()
 			counters.updateRelatedFailed++
 			mutexCounters.Unlock()
 			return false
 		}
 
-		if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" && !strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected") {
+		if xmlResponExt.MethodResult != "ok" && xmlResponExt.State.ErrorRet != "There are no values to update" && !strings.Contains(xmlResponExt.State.ErrorRet, "Superfluous entity record update detected") {
 			buffer.WriteString(loggerGen(4, "Unable to Update Asset Extended Details: "+xmlResponExt.State.ErrorRet))
-			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
+			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLUpdateExt))
 			mutexCounters.Lock()
 			counters.updateRelatedFailed++
 			mutexCounters.Unlock()
 			return false
 		}
 
-		if xmlRespon.MethodResult != "ok" && (xmlRespon.State.ErrorRet == "There are no values to update" || strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected")) {
+		if xmlResponExt.MethodResult != "ok" && (xmlResponExt.State.ErrorRet == "There are no values to update" || strings.Contains(xmlResponExt.State.ErrorRet, "Superfluous entity record update detected")) {
 			mutexCounters.Lock()
 			counters.updateRelatedSkipped++
 			mutexCounters.Unlock()
 		}
 
-		if xmlRespon.MethodResult == "ok" {
+		if xmlResponExt.MethodResult == "ok" {
 			boolRecordUpdated = true
 			buffer.WriteString(loggerGen(1, "Asset record extended details updated successfully: "+strAssetID))
 		}
