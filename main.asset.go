@@ -209,13 +209,13 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 				softwareRecordsHash string
 			)
 
-			if !(configCSV) {
-			//One DB connection per worker
+			if !configCSV && !configNexthink {
+				//One DB connection per worker
 				db, err = makeDBConnection()
-			if err != nil {
-				logger(4, "[DATABASE] "+err.Error(), false, true)
-			}
-			defer db.Close()
+				if err != nil {
+					logger(4, "[DATABASE] "+err.Error(), false, true)
+				}
+				defer db.Close()
 			}
 
 			//One XMLMC connection per worker
@@ -244,27 +244,27 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 						mutexCounters.Unlock()
 					}
 
-					if !(configCSV) {
-					//Software inventory records
-					hbSIRecordHash = fmt.Sprintf("%v", asset["h_dsc_sw_fingerprint"])
-					debugLog(&buffer, "Database Asset Software Inventory Record Hash: "+softwareRecordsHash)
-					debugLog(&buffer, "Hornbill Asset Software Inventory Record Hash: "+hbSIRecordHash)
-					softwareRecords, softwareRecordsHash, err = getSoftwareRecords(assetMap, assetType, espXmlmc, db, &buffer)
+					if !configCSV {
+						//Software inventory records
+						hbSIRecordHash = fmt.Sprintf("%v", asset["h_dsc_sw_fingerprint"])
+						debugLog(&buffer, "Database Asset Software Inventory Record Hash: "+softwareRecordsHash)
+						debugLog(&buffer, "Hornbill Asset Software Inventory Record Hash: "+hbSIRecordHash)
+						softwareRecords, softwareRecordsHash, err = getSoftwareRecords(assetMap, assetType, espXmlmc, db, &buffer)
 
-					if err != nil {
-						buffer.WriteString(loggerGen(4, err.Error()))
-						mutexCounters.Lock()
-						counters.softwareCreateFailed++
-						mutexCounters.Unlock()
-					}
-					if len(softwareRecords) > 0 && hbSIRecordHash != softwareRecordsHash {
-						boolUpdateSI = true
-					} else {
-						buffer.WriteString(loggerGen(1, "Asset match found, no software inventory updates required"))
-						mutexCounters.Lock()
-						counters.softwareSkipped++
-						mutexCounters.Unlock()
-					}
+						if err != nil {
+							buffer.WriteString(loggerGen(4, err.Error()))
+							mutexCounters.Lock()
+							counters.softwareCreateFailed++
+							mutexCounters.Unlock()
+						}
+						if len(softwareRecords) > 0 && hbSIRecordHash != softwareRecordsHash {
+							boolUpdateSI = true
+						} else {
+							buffer.WriteString(loggerGen(1, "Asset match found, no software inventory updates required"))
+							mutexCounters.Lock()
+							counters.softwareSkipped++
+							mutexCounters.Unlock()
+						}
 					}
 
 				case "mobileDevice":
@@ -280,25 +280,25 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 						mutexCounters.Unlock()
 					}
 
-					if !(configCSV) {
-					//Software inventory records
-					hbSIRecordHash = fmt.Sprintf("%v", asset["h_dsc_sw_fingerprint"])
-					debugLog(&buffer, "Hornbill Asset Software Inventory Record Hash: "+hbSIRecordHash)
-					softwareRecords, softwareRecordsHash, err = getSoftwareRecords(assetMap, assetType, espXmlmc, db, &buffer)
-					if err != nil {
-						buffer.WriteString(loggerGen(4, err.Error()))
-						mutexCounters.Lock()
-						counters.softwareCreateFailed++
-						mutexCounters.Unlock()
-					}
-					if len(softwareRecords) > 0 && hbSIRecordHash != softwareRecordsHash {
-						boolUpdateSI = true
-					} else {
-						buffer.WriteString(loggerGen(1, "Asset match found, no software inventory updates required"))
-						mutexCounters.Lock()
-						counters.softwareSkipped++
-						mutexCounters.Unlock()
-					}
+					if !configCSV {
+						//Software inventory records
+						hbSIRecordHash = fmt.Sprintf("%v", asset["h_dsc_sw_fingerprint"])
+						debugLog(&buffer, "Hornbill Asset Software Inventory Record Hash: "+hbSIRecordHash)
+						softwareRecords, softwareRecordsHash, err = getSoftwareRecords(assetMap, assetType, espXmlmc, db, &buffer)
+						if err != nil {
+							buffer.WriteString(loggerGen(4, err.Error()))
+							mutexCounters.Lock()
+							counters.softwareCreateFailed++
+							mutexCounters.Unlock()
+						}
+						if len(softwareRecords) > 0 && hbSIRecordHash != softwareRecordsHash {
+							boolUpdateSI = true
+						} else {
+							buffer.WriteString(loggerGen(1, "Asset match found, no software inventory updates required"))
+							mutexCounters.Lock()
+							counters.softwareSkipped++
+							mutexCounters.Unlock()
+						}
 					}
 
 				case "printer":
@@ -413,15 +413,15 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 	newAssetHash = Hash(append(assetForHash, u))
 	if assetType.Class == "computer" || assetType.Class == "mobileDevice" {
 
-		if !(configCSV) {
-		softwareRecords, softwareRecordsHash, err = getSoftwareRecords(u, assetType, espXmlmc, db, buffer)
-		if err != nil {
-			buffer.WriteString(loggerGen(4, err.Error()))
-			mutexCounters.Lock()
-			counters.softwareCreateFailed++
-			mutexCounters.Unlock()
+		if !configCSV {
+			softwareRecords, softwareRecordsHash, err = getSoftwareRecords(u, assetType, espXmlmc, db, buffer)
+			if err != nil {
+				buffer.WriteString(loggerGen(4, err.Error()))
+				mutexCounters.Lock()
+				counters.softwareCreateFailed++
+				mutexCounters.Unlock()
+			}
 		}
-	}
 	}
 
 	//Get site ID

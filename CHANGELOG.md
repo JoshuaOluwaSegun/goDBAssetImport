@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2.1.0 (August 2nd, 2021)
+
+Feature:
+
+- Added support for importing asset records from Nexthink
+
+Changes:
+
+- Improved nil-value logic when populating templates
+- Simplified bool const comparisons
+
 ## 2.0.0 (July 22nd, 2021)
 
 Changes:

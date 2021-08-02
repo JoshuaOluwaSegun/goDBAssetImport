@@ -81,17 +81,18 @@ func main() {
 	//Get asset types, process accordingly
 	BaseSQLQuery = SQLImportConf.SQLConf.Query
 	configCSV = (strings.ToLower(SQLImportConf.SQLConf.Driver) == "csv")
+	configNexthink = (strings.ToLower(SQLImportConf.SQLConf.Driver) == "nexthink")
 
-	if !(configCSV) {
-	//Build DB connection string
-	connString = buildConnectionString()
-	if connString == "" {
-		logger(4, " [DATABASE] Database Connection String Empty. Check the SQLConf section of your configuration.", true, true)
-		return
-	}
+	if !configCSV && !configNexthink {
+		//Build DB connection string
+		connString = buildConnectionString()
+		if connString == "" {
+			logger(4, " [DATABASE] Database Connection String Empty. Check the SQLConf section of your configuration.", true, true)
+			return
+		}
 	}
 	setTemplateFilters()
-	
+
 	templateFault := checkTemplate()
 	if templateFault {
 		logger(4, " [Template] Issues were found with the template.", true, true)
@@ -99,8 +100,8 @@ func main() {
 	}
 
 	for _, v := range SQLImportConf.AssetTypes {
-		StrAssetType = fmt.Sprintf("%v", v.AssetType)
-		StrSQLAppend = fmt.Sprintf("%v", v.Query)
+		StrAssetType = v.AssetType
+		StrSQLAppend = v.Query
 		//Set Asset Class & Type vars from instance
 		AssetClass, AssetTypeID = getAssetClass(StrAssetType)
 		v.TypeID = AssetTypeID
@@ -112,6 +113,13 @@ func main() {
 		var arrAssets map[string]map[string]interface{}
 		if configCSV {
 			boolSQLAssets, arrAssets = getAssetsFromCSV(StrSQLAppend, v)
+		} else if configNexthink {
+			arrAssets, err = getAssetsFromNexthink(v)
+			if err != nil {
+				logger(4, err.Error(), true, true)
+			} else {
+				boolSQLAssets = true
+			}
 		} else {
 			boolSQLAssets, arrAssets = queryAssets(StrSQLAppend, v)
 		}

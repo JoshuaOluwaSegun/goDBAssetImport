@@ -43,18 +43,22 @@ func getFieldValue(k string, v string, u map[string]interface{}, buffer *bytes.B
 	tmpl, _ := t.Parse(fieldMap)
 	buf := bytes.NewBufferString("")
 	tmpl.Execute(buf, u)
-	value := buf.String()
+
+	value := ""
+	if buf != nil {
+		value = buf.String()
+	}
 	debugLog(buffer, "value:", value)
 
-	if value == "%!s(<nil>)" || value == "<no value>" {
+	if value == "<no value>" {
 		value = ""
-		}
+	}
 	fieldMap = value
 	if fieldMap != "" {
-			if strings.Contains(strings.ToLower(k), "date") {
+		if strings.Contains(strings.ToLower(k), "date") {
 			fieldMap = checkDateString(fieldMap)
-			}
-			}
+		}
+	}
 	debugLog(buffer, "returning:", fieldMap)
 	return fieldMap
 }

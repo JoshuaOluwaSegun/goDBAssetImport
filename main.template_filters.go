@@ -10,7 +10,6 @@ var (
 	TemplateFilters template.FuncMap
 )
 
-
 func checkTemplate() bool {
 	blnFoundError := false
 	for k, v := range SQLImportConf.AssetGenericFieldMapping {

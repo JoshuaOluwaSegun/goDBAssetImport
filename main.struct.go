@@ -10,7 +10,7 @@ import (
 
 //----- Constants -----
 const (
-	version           = "2.0.0"
+	version           = "2.1.0"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
 )
@@ -31,6 +31,7 @@ var (
 	configVersion          bool
 	configForceUpdates     bool
 	configCSV              bool
+	configNexthink         bool
 	Customers              []customerListStruct
 	startTime              time.Time
 	AssetClass             string
@@ -108,6 +109,7 @@ type assetTypesStruct struct {
 	PreserveSubState         bool
 	PreserveOperationalState bool
 	Query                    string
+	NexthinkPlatform         string
 	AssetIdentifier          assetIdentifierStruct
 	SoftwareInventory        softwareInventoryStruct
 	Class                    string

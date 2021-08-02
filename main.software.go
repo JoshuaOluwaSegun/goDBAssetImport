@@ -19,10 +19,19 @@ func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, es
 	if assetType.SoftwareInventory.Query != "" && assetType.SoftwareInventory.AssetIDColumn != "" {
 		if val, ok := u[assetType.SoftwareInventory.AssetIDColumn]; ok {
 			swAssetID := iToS(val)
-			debugLog(buffer, "Asset ID found in DB record:", swAssetID)
-			softwareRecords, softwareRecordsHash, err = querySoftwareInventoryRecords(swAssetID, assetType, db, buffer)
-			if err != nil {
-				err = errors.New("Unable to read software inventory records from source DB:" + err.Error())
+			debugLog(buffer, "Asset ID found in source data record:", swAssetID)
+
+			if configNexthink {
+				swAssetID = iToS(u["id"])
+				softwareRecords, softwareRecordsHash, err = queryNexthingSoftwareInventoryRecords(swAssetID, assetType, buffer)
+				if err != nil {
+					err = errors.New("Unable to read software inventory records from Nexthink:" + err.Error())
+				}
+			} else {
+				softwareRecords, softwareRecordsHash, err = querySoftwareInventoryRecords(swAssetID, assetType, db, buffer)
+				if err != nil {
+					err = errors.New("Unable to read software inventory records from source DB:" + err.Error())
+				}
 			}
 		} else {
 			err = errors.New("unable to read software inventory records from source db, asset ID not found in db record")
@@ -61,7 +70,6 @@ func addSoftwareInventoryRecord(fkAssetID string, softwareRecord map[string]inte
 		strMapping := fmt.Sprintf("%v", v)
 		value := getFieldValue(k, strMapping, softwareRecord, buffer)
 		debugLog(buffer, k, ":", strMapping, ":", value)
-
 		if value != "" {
 			espXmlmc.SetParam(k, value)
 			if k == "h_app_name" {
