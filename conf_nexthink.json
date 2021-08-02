@@ -27,7 +27,7 @@
             },
             "SoftwareInventory": {
                 "AssetIDColumn": "name",
-                "AppIDColumn": "package/id",
+                "AppIDColumn": "",
                 "Query": "(select ((package (id publisher first_installation name program version)))(from (device package) (with package(where device (eq id (identifier {{AssetID}})))(where package(eq type (enum 'program'))(eq status (enum 'installed')))))(limit 20000))",
                 "Mapping": {
                     "h_app_id":"{{.publisher}}{{.name}}{{.version}}",

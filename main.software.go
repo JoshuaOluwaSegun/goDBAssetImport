@@ -20,7 +20,6 @@ func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, es
 		if val, ok := u[assetType.SoftwareInventory.AssetIDColumn]; ok {
 			swAssetID := iToS(val)
 			debugLog(buffer, "Asset ID found in source data record:", swAssetID)
-
 			if configNexthink {
 				swAssetID = iToS(u["id"])
 				softwareRecords, softwareRecordsHash, err = queryNexthingSoftwareInventoryRecords(swAssetID, assetType, buffer)
@@ -247,6 +246,8 @@ func updateAssetSI(assetID string, softwareRecords map[string]map[string]interfa
 		hbSIRecordCount        uint64
 		hbSICache              = make(map[string]softwareRecordDetailsStruct)
 		boolUpdateSoftwareHash = true
+		softwareAdded          int
+		softwareRemoved        int
 	)
 	buffer.WriteString(loggerGen(1, "Processing Software Inventory updates for asset: "+assetID))
 	//Process Software Inventory updates
@@ -279,6 +280,8 @@ func updateAssetSI(assetID string, softwareRecords map[string]map[string]interfa
 					mutexCounters.Unlock()
 					buffer.WriteString(loggerGen(4, "Error deleting software inventory record: "+err.Error()))
 					boolUpdateSoftwareHash = false
+				} else {
+					softwareRemoved++
 				}
 			}
 		}
@@ -300,10 +303,13 @@ func updateAssetSI(assetID string, softwareRecords map[string]map[string]interfa
 					counters.softwareCreateFailed++
 					mutexCounters.Unlock()
 					boolUpdateSoftwareHash = false
+				} else {
+					softwareAdded++
 				}
 			}
 		}
-
+		buffer.WriteString(loggerGen(1, strconv.Itoa(softwareAdded)+" software records successfully added"))
+		buffer.WriteString(loggerGen(1, strconv.Itoa(softwareRemoved)+" software records successfully removed"))
 	} else {
 		buildSoftwareInventory(softwareRecords, assetType, assetID, espXmlmc, buffer)
 	}

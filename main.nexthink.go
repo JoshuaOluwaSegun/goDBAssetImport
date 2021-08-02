@@ -111,8 +111,7 @@ func queryNexthingSoftwareInventoryRecords(assetID string, assetType assetTypesS
 
 	//Initialise Asset Map
 	var arrSoftwareMaps []map[string]interface{}
-	logger(1, " ", false, false)
-	logger(3, "[NEXTHINK] Running Nexthink query for software against "+assetID+" asset. Please wait...", true, true)
+	buffer.WriteString(loggerGen(3, "[NEXTHINK] Running Nexthink query for software against "+assetID+" asset. Please wait..."))
 
 	strUrl := SQLImportConf.SQLConf.Server + "/query?"
 	strUrl += "query=" + url.QueryEscape(sqlAssetQuery)
@@ -149,10 +148,13 @@ func queryNexthingSoftwareInventoryRecords(assetID string, assetType assetTypesS
 		return returnMap, hash, err
 	}
 	if err := json.Unmarshal([]byte(body), &arrSoftwareMaps); err != nil {
-		log.Fatal(err)
+		err = errors.New("cant unmarshal the body of the response: " + err.Error())
+		return returnMap, hash, err
 	}
+	recordsHash := Hash(arrSoftwareMaps)
+	hash = fmt.Sprintf("%v", recordsHash)
 	for _, v := range arrSoftwareMaps {
-		assetIdentifier := iToS(v["package/vendor"]) + iToS(v["package/name"]) + iToS(v["package/version"])
+		assetIdentifier := iToS(v["package/publisher"]) + iToS(v["package/name"]) + iToS(v["package/version"])
 		returnMap[assetIdentifier] = make(map[string]interface{})
 		for field, value := range v {
 			fieldId := strings.Replace(field, "package/", "", 1)
@@ -162,7 +164,6 @@ func queryNexthingSoftwareInventoryRecords(assetID string, assetType assetTypesS
 			}
 			returnMap[assetIdentifier][fieldId] = value
 		}
-
 	}
 	return returnMap, hash, err
 }

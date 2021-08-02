@@ -247,9 +247,9 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 					if !configCSV {
 						//Software inventory records
 						hbSIRecordHash = fmt.Sprintf("%v", asset["h_dsc_sw_fingerprint"])
-						debugLog(&buffer, "Database Asset Software Inventory Record Hash: "+softwareRecordsHash)
-						debugLog(&buffer, "Hornbill Asset Software Inventory Record Hash: "+hbSIRecordHash)
 						softwareRecords, softwareRecordsHash, err = getSoftwareRecords(assetMap, assetType, espXmlmc, db, &buffer)
+						debugLog(&buffer, "Hornbill Asset Software Inventory Record Hash: "+hbSIRecordHash)
+						debugLog(&buffer, "Database Asset Software Inventory Record Hash: "+softwareRecordsHash)
 
 						if err != nil {
 							buffer.WriteString(loggerGen(4, err.Error()))
