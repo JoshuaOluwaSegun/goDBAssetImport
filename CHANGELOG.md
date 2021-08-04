@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.1.1 (August 4th, 2021)
+
+Feature:
+
+- added epoch and epoch_clear template filters. The first is to transform epoch to datetime (treating 0 as empty) the other treats 0 and empty as __clear__.
+
 ## 2.1.0 (August 2nd, 2021)
 
 Feature:

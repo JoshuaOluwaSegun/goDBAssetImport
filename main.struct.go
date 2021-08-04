@@ -10,7 +10,7 @@ import (
 
 //----- Constants -----
 const (
-	version           = "2.1.0"
+	version           = "2.1.1"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
 )

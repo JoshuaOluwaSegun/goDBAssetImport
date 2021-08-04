@@ -170,7 +170,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 	debugLog(nil, "Asset Identifier:", assetType.AssetIdentifier.Entity, assetType.AssetIdentifier.EntityColumn, assetType.AssetIdentifier.DBColumn, assetIDIdent)
 	blnContractConnect := supplierManagerInstalled() && assetType.AssetIdentifier.DBContractColumn != ""
 	blnSupplierConnect := supplierManagerInstalled() && assetType.AssetIdentifier.DBSupplierColumn != ""
-	blnCMInPolicy := configManagerInstalled() && assetType.AssetIdentifier.DBInPolicyColumn != ""
+	blnCMInPolicy := assetType.AssetIdentifier.DBInPolicyColumn != ""
 
 	//-- Loop each asset
 	maxGoroutinesGuard := make(chan struct{}, maxGoroutines)

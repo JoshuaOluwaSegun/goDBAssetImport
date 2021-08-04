@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"strings"
+	"strconv"
+	"time"
 	"text/template"
 )
 
@@ -51,6 +53,32 @@ func setTemplateFilters() {
 		},
 		"Lower": func(feature string) string {
 			return strings.ToLower(feature)
+		},
+		"epoch": func(feature string) string {
+			result := ""
+			if feature == "" {
+			} else if feature == "0" {
+			} else {
+				t, err := strconv.ParseInt(feature,10, 0)
+				if err == nil {
+					md := time.Unix(t, 0)
+					result = md.Format("2006-01-02 15:04:05")
+				}
+			}
+			return result
+		},
+		"epoch_clear": func(feature string) string {
+			result := "__clear__"
+			if feature == "" {
+			} else if feature == "0" {
+			} else {
+				t, err := strconv.ParseInt(feature,10, 0)
+				if err == nil {
+					md := time.Unix(t, 0)
+					result = md.Format("2006-01-02 15:04:05")
+				}
+			}
+			return result
 		},
 	}
 }
