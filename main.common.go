@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -240,4 +241,40 @@ func espLogger(message string, severity string) {
 	hornbillImport.SetParam("severity", severity)
 	hornbillImport.SetParam("message", message)
 	hornbillImport.Invoke("system", "logMessage")
+}
+
+func checkConfig() (err error) {
+	//Checks:
+	// AssetGenericFieldMapping
+	// AssetTypeFieldMapping
+	// SoftwareInventory - Mapping
+	var (
+		regex    = `.*\[[A-Za-z0-9]{0,}\].*`
+		errorArr []string
+	)
+	r, _ := regexp.Compile(regex)
+
+	for k, v := range SQLImportConf.AssetGenericFieldMapping {
+		if r.MatchString(v.(string)) {
+			errorArr = append(errorArr, "AssetGenericFieldMapping - "+k+":"+v.(string))
+		}
+	}
+
+	for k, v := range SQLImportConf.AssetTypeFieldMapping {
+		if r.MatchString(v.(string)) {
+			errorArr = append(errorArr, "AssetTypeFieldMapping - "+k+":"+v.(string))
+		}
+	}
+
+	for _, assetType := range SQLImportConf.AssetTypes {
+		for k, v := range assetType.SoftwareInventory.Mapping {
+			if r.MatchString(v.(string)) {
+				errorArr = append(errorArr, assetType.AssetType+" SoftwareInventory.Mapping  - "+k+":"+v.(string))
+			}
+		}
+	}
+	if len(errorArr) > 0 {
+		err = errors.New(strings.Join(errorArr[:], "\n"))
+	}
+	return
 }

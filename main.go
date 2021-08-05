@@ -46,6 +46,16 @@ func main() {
 	if SQLImportConf.LogSizeBytes > 0 {
 		maxLogFileSize = SQLImportConf.LogSizeBytes
 	}
+
+	err := checkConfig()
+	if err != nil {
+		color.Red("Your configuration file is invalid. Since v2.0.0 of this tool, square-bracket notation has been replaced by Golang templates.")
+		color.Red("See the Hornbill Wiki for more information: https://wiki.hornbill.com/index.php?title=Database_Asset_Import")
+		fmt.Println()
+		fmt.Println("Unsupported mappings:")
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 	//XMLMC session to perform local caching of instance records with
 	initXMLMC()
 

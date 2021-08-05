@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.2.0 (August 5th, 2012)
+
+Change:
+
+- Added configuration validation to ensure v2.x compatible mappings are used
+
 ## 2.1.1 (August 4th, 2021)
 
 Feature:
