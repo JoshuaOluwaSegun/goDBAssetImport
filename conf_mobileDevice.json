@@ -1,6 +1,7 @@
 {
     "APIKey": "",
     "InstanceID": "",
+    "Version":"",
     "LogSizeBytes": 1000000,
     "SQLConf": {
         "Driver": "mssql",

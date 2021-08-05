@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.1.2 (August 5th, 2021)
+
+Feature:
+
+- Version Check - a new "Version" parameter has been added to the configuration files. The value in here must match the version number of the application (e.g. "Version":"2.1.2") for this particular version.
+
 ## 2.1.1 (August 4th, 2021)
 
 Feature:

@@ -1,6 +1,7 @@
 {
     "APIKey": "",
     "InstanceId": "",
+    "Version":"",
     "LogSizeBytes": 1000000,
     "SQLConf": {
         "Driver": "nexthink",
