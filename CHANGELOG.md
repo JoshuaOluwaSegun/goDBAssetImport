@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2.2.1 (August 16th, 2021)
+
+Change:
+
+- Added __sharedasset__ as a placeholder for the h_user_id field, allowing an asset to be set as shared.
+
+Fixed:
+
+- modification to re-introduce [HBAssetType] as a placeholder - now introduced as __hbassettype__ - for the Asset Type. 
+
 ## 2.2.0 (August 5th, 2021)
 
 Change:

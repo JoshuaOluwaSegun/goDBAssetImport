@@ -35,7 +35,7 @@ func initXMLMC() {
 func getFieldValue(k string, v string, u map[string]interface{}, buffer *bytes.Buffer) string {
 	debugLog(buffer, "getFieldValue:", k, ":", v)
 	fieldMap := v
-	if fieldMap == "[HBAssetType]" {
+	if fieldMap == "__hbassettype__" {
 		debugLog(buffer, "Returning AssetType:", StrAssetType)
 		return StrAssetType
 	}

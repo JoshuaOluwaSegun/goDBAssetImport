@@ -140,10 +140,14 @@ func getCount(query string) uint64 {
 	return count
 }
 
+
 func getUserID(u map[string]interface{}, userCol string, buffer *bytes.Buffer) (userID, userURN, userName string) {
 	userMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping[userCol])
 	userID = getFieldValue(userCol, userMapping, u, buffer)
-	if userID != "" && userID != "<nil>" && userID != "__clear__" {
+	if userID == "__sharedasset__" {
+		userName = "Shared"
+		userID = "urn:sys:0:Shared:SharedUser"
+	} else if userID != "" && userID != "<nil>" && userID != "__clear__" {
 		mutexCustomers.Lock()
 		for _, customer := range Customers {
 			if strings.EqualFold(customer.CustomerID, userID) {

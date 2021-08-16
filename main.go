@@ -201,7 +201,7 @@ func loadConfig() sqlImportConfStruct {
 	if err != nil {
 		logger(4, "Error Decoding Configuration File: "+err.Error(), true, false)
 	}
-	if esqlConf.Version != version {
+/*	if esqlConf.Version != version {
 		logger(4, appName+" Version Mismatch; Executable version: "+version, true, false)
 		fmt.Println("")
 		if esqlConf.Version == "" {
@@ -212,7 +212,7 @@ func loadConfig() sqlImportConfStruct {
 		fmt.Println("")
 		logger(5, "Please read the CHANGELOG or Wiki entry ( https://wiki.hornbill.com/index.php?title=Database_Asset_Import ) carefully as you will require to make changes to your configuration file", true, false)
 		os.Exit(103)
-	}
+	} */
 	//-- Return New Config
 	return esqlConf
 }
