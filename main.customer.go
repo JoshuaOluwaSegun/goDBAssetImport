@@ -146,7 +146,7 @@ func getUserID(u map[string]interface{}, userCol string, buffer *bytes.Buffer) (
 	userID = getFieldValue(userCol, userMapping, u, buffer)
 	if userID == "__sharedasset__" {
 		userName = "Shared"
-		userID = "urn:sys:0:Shared:SharedUser"
+		userID = "SharedUser"
 	} else if userID != "" && userID != "<nil>" && userID != "__clear__" {
 		mutexCustomers.Lock()
 		for _, customer := range Customers {
