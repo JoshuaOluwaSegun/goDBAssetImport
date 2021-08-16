@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/xml"
-_	"fmt"
+	_ "fmt"
 	"strings"
 
 	apiLib "github.com/hornbill/goApiLib"
@@ -11,9 +11,6 @@ _	"fmt"
 
 func supplierManagerInstalled() bool {
 	return isAppInstalled("com.hornbill.suppliermanager")
-}
-func configManagerInstalled() bool {
-	return isAppInstalled("com.hornbill.configurationmanager")
 }
 func isAppInstalled(app string) bool {
 	for _, b := range HInstalledApplications {
