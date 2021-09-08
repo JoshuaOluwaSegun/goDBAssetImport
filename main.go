@@ -168,6 +168,12 @@ func main() {
 	logger(1, "Software Records Create Failed: "+fmt.Sprintf("%d", counters.softwareCreateFailed), true, true)
 	logger(1, "Software Records Removed: "+fmt.Sprintf("%d", counters.softwareRemoved), true, true)
 	logger(1, "Software Records Removal Failed: "+fmt.Sprintf("%d", counters.softwareRemoveFailed), true, true)
+	logger(1, "Asset Supplier Associations Success: "+fmt.Sprintf("%d", counters.suppliersAssociatedSuccess), true, true)
+	logger(1, "Asset Supplier Associations Failed: "+fmt.Sprintf("%d", counters.suppliersAssociatedFailed), true, true)
+	logger(1, "Asset Supplier Associations Skipped: "+fmt.Sprintf("%d", counters.suppliersAssociatedSkipped), true, true)
+	logger(1, "Asset Supplier Contract Associations Success: "+fmt.Sprintf("%d", counters.supplierContractsAssociatedSuccess), true, true)
+	logger(1, "Asset Supplier Contract Associations Failed: "+fmt.Sprintf("%d", counters.supplierContractsAssociatedFailed), true, true)
+	logger(1, "Asset Supplier Contract Associations Skipped: "+fmt.Sprintf("%d", counters.supplierContractsAssociatedSkipped), true, true)
 
 	//-- Show Time Takens
 	logger(1, "Time Taken: "+fmt.Sprintf("%v", time.Since(startTime).Round(time.Second)), true, true)
@@ -201,7 +207,7 @@ func loadConfig() sqlImportConfStruct {
 	if err != nil {
 		logger(4, "Error Decoding Configuration File: "+err.Error(), true, false)
 	}
-/*	if esqlConf.Version != version {
+	/*	if esqlConf.Version != version {
 		logger(4, appName+" Version Mismatch; Executable version: "+version, true, false)
 		fmt.Println("")
 		if esqlConf.Version == "" {

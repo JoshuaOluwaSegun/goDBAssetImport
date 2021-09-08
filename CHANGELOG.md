@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.3.0 (September 8th, 2021)
+
+Feature:
+
+- Added Supplier Manager integration - you can now define Suppliers and Supplier Contracts against imported assets
+
 ## 2.2.1 (August 16th, 2021)
 
 Change:

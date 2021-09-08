@@ -21,6 +21,11 @@
             "PreserveState": false,
             "PreserveSubState": false,
             "PreserveOperationalState": false,
+            "SupplierManagerIntegration": {
+                "Enabled": false,
+                "SupplierID": "",
+                "SupplierContract": ""
+            },
             "Query": "WHERE at.AssetTypename = 'Windows' AND os.ProductType = 1 AND ac.Model = 'Latitude E6320'",
             "AssetIdentifier": {
                 "DBColumn": "AssetName",

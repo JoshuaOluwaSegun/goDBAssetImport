@@ -360,7 +360,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 					buffer.WriteString(loggerGen(1, "Asset match not found, but OperationType not set to Both or Create"))
 				}
 			}
-			if boolUpdateSI {
+			if boolUpdateSI && !configDryRun {
 				err = updateAssetSI(assetIDInstance, softwareRecords, softwareRecordsHash, assetType, espXmlmc, &buffer)
 				if err != nil {
 					buffer.WriteString(loggerGen(4, err.Error()))
@@ -621,6 +621,29 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 
 			if (assetType.Class == "computer" || assetType.Class == "mobile") && len(softwareRecords) > 0 {
 				buildSoftwareInventory(softwareRecords, assetType, assetID, espXmlmc, buffer)
+			}
+
+			if assetType.SupplierManagerIntegration.Enabled {
+				if assetType.SupplierManagerIntegration.SupplierID != "" {
+					supplierID := getFieldValue("SupplierID", assetType.SupplierManagerIntegration.SupplierID, u, buffer)
+					if supplierID != "" {
+						err = addSupplierToAsset(assetID, supplierID, espXmlmc, buffer)
+						if err != nil {
+							counters.suppliersAssociatedFailed++
+							buffer.WriteString(loggerGen(4, "Unable to associate Supplier ["+supplierID+"] to Asset ["+assetID+"]: "+err.Error()))
+						}
+						if err == nil && assetType.SupplierManagerIntegration.SupplierContract != "" {
+							contractID := getFieldValue("SupplierContract", assetType.SupplierManagerIntegration.SupplierContract, u, buffer)
+							if contractID != "" {
+								err = addSupplierContractToAsset(assetID, contractID, espXmlmc, buffer)
+								if err != nil {
+									counters.supplierContractsAssociatedFailed++
+									buffer.WriteString(loggerGen(4, "Unable to associate Contract ["+contractID+"] to Asset ["+assetID+"]: "+err.Error()))
+								}
+							}
+						}
+					}
+				}
 			}
 
 			return assetID, true
@@ -946,6 +969,33 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 			mutexCounters.Lock()
 			counters.updated++
 			mutexCounters.Unlock()
+
+			if assetType.SupplierManagerIntegration.Enabled {
+				if assetType.SupplierManagerIntegration.SupplierID != "" {
+					supplierID := getFieldValue("SupplierID", assetType.SupplierManagerIntegration.SupplierID, u, buffer)
+					if supplierID != "" {
+						err = addSupplierToAsset(strAssetID, supplierID, espXmlmc, buffer)
+						if err != nil {
+							mutexCounters.Lock()
+							counters.suppliersAssociatedFailed++
+							mutexCounters.Unlock()
+							buffer.WriteString(loggerGen(4, "Unable to associate Supplier ["+supplierID+"] to Asset ["+strAssetID+"]: "+err.Error()))
+						}
+						if err == nil && assetType.SupplierManagerIntegration.SupplierContract != "" {
+							contractID := getFieldValue("SupplierContract", assetType.SupplierManagerIntegration.SupplierContract, u, buffer)
+							if contractID != "" {
+								err = addSupplierContractToAsset(strAssetID, contractID, espXmlmc, buffer)
+								if err != nil {
+									mutexCounters.Lock()
+									counters.supplierContractsAssociatedFailed++
+									mutexCounters.Unlock()
+									buffer.WriteString(loggerGen(4, "Unable to associate Contract ["+contractID+"] to Asset ["+strAssetID+"]: "+err.Error()))
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 
 	} else {

@@ -21,6 +21,11 @@
         "PreserveState": false,
         "PreserveSubState": false,
         "PreserveOperationalState": false,
+        "SupplierManagerIntegration": {
+            "Enabled": false,
+            "SupplierID": "",
+            "SupplierContract": ""
+        },
         "Query": "AND tblAssetCustom.Custom2 = 'Desk Phone'",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

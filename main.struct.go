@@ -10,7 +10,7 @@ import (
 
 //----- Constants -----
 const (
-	version           = "2.2.1"
+	version           = "2.3.0"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
 )
@@ -68,19 +68,25 @@ type groupListStruct struct {
 	GroupID   string
 }
 type counterTypeStruct struct {
-	updated              uint16
-	created              uint16
-	updateSkipped        uint16
-	updateRelatedFailed  uint16
-	updateRelatedSkipped uint16
-	createSkipped        uint16
-	updateFailed         uint16
-	createFailed         uint16
-	softwareCreated      uint32
-	softwareRemoved      uint32
-	softwareSkipped      uint32
-	softwareCreateFailed uint32
-	softwareRemoveFailed uint32
+	updated                            uint16
+	created                            uint16
+	updateSkipped                      uint16
+	updateRelatedFailed                uint16
+	updateRelatedSkipped               uint16
+	createSkipped                      uint16
+	updateFailed                       uint16
+	createFailed                       uint16
+	softwareCreated                    uint32
+	softwareRemoved                    uint32
+	softwareSkipped                    uint32
+	softwareCreateFailed               uint32
+	softwareRemoveFailed               uint32
+	suppliersAssociatedSuccess         uint16
+	suppliersAssociatedFailed          uint16
+	suppliersAssociatedSkipped         uint16
+	supplierContractsAssociatedSuccess uint16
+	supplierContractsAssociatedFailed  uint16
+	supplierContractsAssociatedSkipped uint16
 }
 type sqlImportConfStruct struct {
 	APIKey                   string
@@ -102,18 +108,25 @@ type csvConfStruct struct {
 }
 
 type assetTypesStruct struct {
-	AssetType                string
-	OperationType            string
-	PreserveShared           bool
-	PreserveState            bool
-	PreserveSubState         bool
-	PreserveOperationalState bool
-	Query                    string
-	NexthinkPlatform         string
-	AssetIdentifier          assetIdentifierStruct
-	SoftwareInventory        softwareInventoryStruct
-	Class                    string
-	TypeID                   int
+	AssetType                  string
+	OperationType              string
+	PreserveShared             bool
+	PreserveState              bool
+	PreserveSubState           bool
+	PreserveOperationalState   bool
+	Query                      string
+	NexthinkPlatform           string
+	SupplierManagerIntegration supplierManagerStruct
+	AssetIdentifier            assetIdentifierStruct
+	SoftwareInventory          softwareInventoryStruct
+	Class                      string
+	TypeID                     int
+}
+
+type supplierManagerStruct struct {
+	Enabled          bool
+	SupplierID       string
+	SupplierContract string
 }
 
 type assetIdentifierStruct struct {
@@ -293,6 +306,9 @@ type stateStruct struct {
 	ErrorRet string `xml:"error"`
 }
 type paramsStruct struct {
-	SessionID string `xml:"sessionId"`
-	HPKID     int    `xml:"primaryEntityData>record>h_pk_id"`
+	SessionID               string `xml:"sessionId"`
+	HPKID                   int    `xml:"primaryEntityData>record>h_pk_id"`
+	Outcome                 string `xml:"outcome"`
+	SupplierAssetID         int    `xml:"supplierAssetId"`
+	SupplierContractAssetID int    `xml:"supplierContractAssetId"`
 }

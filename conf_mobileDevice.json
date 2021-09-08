@@ -21,6 +21,11 @@
         "PreserveState": false,
         "PreserveSubState": false,
         "PreserveOperationalState": false,
+        "SupplierManagerIntegration": {
+            "Enabled": false,
+            "SupplierID": "",
+            "SupplierContract": ""
+        },
         "Query": "AND tblAssetCustom.Custom2 = 'iPad'",
         "AssetIdentifier": {
             "DBColumn": "Custom1",

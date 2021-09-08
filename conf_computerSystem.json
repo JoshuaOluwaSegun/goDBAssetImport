@@ -22,6 +22,11 @@
             "PreserveState": false,
             "PreserveSubState": false,
             "PreserveOperationalState": false,
+            "SupplierManagerIntegration": {
+                "Enabled": false,
+                "SupplierID": "",
+                "SupplierContract": ""
+            },
             "AssetIdentifier": {
                 "DBColumn": "SystemSerialNumber",
                 "Entity": "AssetsComputer",
