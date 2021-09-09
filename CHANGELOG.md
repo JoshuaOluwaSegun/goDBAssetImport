@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2.4.0 (September 9th, 2021)
+
+Changes:
+
+- Removed SupplierManagerIntegration property from configuration, as this is catered for by DBContractColumn and DBSupplierColumn options in the AssetIdentifier object
+- Removed duplicated supplier & contract logic
+- Removed partially-implemented, non-functional in-policy code
+- Added DBContractColumn and DBSupplierColumn properties to the AssetIdentifier object in all example configuration files
+
 ## 2.3.0 (September 8th, 2021)
 
 Feature:

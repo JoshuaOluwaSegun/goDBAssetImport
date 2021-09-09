@@ -22,15 +22,12 @@
             "PreserveState": false,
             "PreserveSubState": false,
             "PreserveOperationalState": false,
-            "SupplierManagerIntegration": {
-                "Enabled": false,
-                "SupplierID": "",
-                "SupplierContract": ""
-            },
             "AssetIdentifier": {
                 "DBColumn": "SystemSerialNumber",
                 "Entity": "AssetsComputer",
-                "EntityColumn": "h_serial_number"
+                "EntityColumn": "h_serial_number",
+                "DBContractColumn": "",
+                "DBSupplierColumn": ""
             },
             "SharedWith": [
                

@@ -21,16 +21,13 @@
         "PreserveState": false,
         "PreserveSubState": false,
         "PreserveOperationalState": false,
-        "SupplierManagerIntegration": {
-            "Enabled": false,
-            "SupplierID": "",
-            "SupplierContract": ""
-        },
         "Query": "AND tblAssetCustom.Custom2 = 'Desktop App'",
         "AssetIdentifier": {
             "DBColumn": "Custom1",
             "Entity": "AssetsSoftware",
-            "EntityColumn": "h_name"
+            "EntityColumn": "h_name",
+            "DBContractColumn": "",
+	        "DBSupplierColumn": ""
         }
     }],
     "AssetGenericFieldMapping": {

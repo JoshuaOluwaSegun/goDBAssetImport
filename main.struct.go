@@ -10,7 +10,7 @@ import (
 
 //----- Constants -----
 const (
-	version           = "2.3.0"
+	version           = "2.4.0"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
 )
@@ -108,31 +108,23 @@ type csvConfStruct struct {
 }
 
 type assetTypesStruct struct {
-	AssetType                  string
-	OperationType              string
-	PreserveShared             bool
-	PreserveState              bool
-	PreserveSubState           bool
-	PreserveOperationalState   bool
-	Query                      string
-	NexthinkPlatform           string
-	SupplierManagerIntegration supplierManagerStruct
-	AssetIdentifier            assetIdentifierStruct
-	SoftwareInventory          softwareInventoryStruct
-	Class                      string
-	TypeID                     int
-}
-
-type supplierManagerStruct struct {
-	Enabled          bool
-	SupplierID       string
-	SupplierContract string
+	AssetType                string
+	OperationType            string
+	PreserveShared           bool
+	PreserveState            bool
+	PreserveSubState         bool
+	PreserveOperationalState bool
+	Query                    string
+	NexthinkPlatform         string
+	AssetIdentifier          assetIdentifierStruct
+	SoftwareInventory        softwareInventoryStruct
+	Class                    string
+	TypeID                   int
 }
 
 type assetIdentifierStruct struct {
 	DBContractColumn string
 	DBSupplierColumn string
-	DBInPolicyColumn string
 	DBColumn         string
 	Entity           string
 	EntityColumn     string
