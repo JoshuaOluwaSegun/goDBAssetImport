@@ -10,63 +10,56 @@ import (
 
 //----- Constants -----
 const (
-	version           = "2.4.0"
+	version           = "3.0.0"
+	repo              = "hornbill/goDBAssetImport"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
+	maxGoRoutines     = 10
 )
 
 //----- Variables -----
 var (
-	connString             string
-	assets                 = make(map[string]string)
-	maxLogFileSize         int64
-	SQLImportConf          sqlImportConfStruct
+	assets         = make(map[string]string)
+	AssetClass     string
+	AssetTypeID    int
+	BaseSQLQuery   string
+	connString     string
+	counters       counterTypeStruct
+	importConf     importConfStruct
+	key            keyDataStruct
+	maxLogFileSize int64
+	startTime      time.Time
+	StrAssetType   string
+	StrSQLAppend   string
+
+	configDebug        bool
+	configDryRun       bool
+	configFileName     string
+	configForceUpdates bool
+	configMaxRoutines  int
+	configVersion      bool
+
+	configCSV      bool
+	configLDAP     bool
+	configNexthink bool
+
 	Sites                  []siteListStruct
 	Groups                 []groupListStruct
-	counters               counterTypeStruct
-	configFileName         string
-	configMaxRoutines      string
-	configDebug            bool
-	configDryRun           bool
-	configVersion          bool
-	configForceUpdates     bool
-	configCSV              bool
-	configNexthink         bool
 	Customers              []customerListStruct
-	startTime              time.Time
-	AssetClass             string
-	AssetTypeID            int
-	BaseSQLQuery           string
-	StrAssetType           string
-	StrSQLAppend           string
-	HInstalledApplications []string
-	mutex                  = &sync.Mutex{}
-	mutexAssets            = &sync.Mutex{}
-	mutexBar               = &sync.Mutex{}
-	mutexBuffer            = &sync.Mutex{}
-	mutexCounters          = &sync.Mutex{}
-	mutexCustomers         = &sync.Mutex{}
-	mutexGroup             = &sync.Mutex{}
-	mutexSite              = &sync.Mutex{}
-	worker                 sync.WaitGroup
-	maxGoroutines          = 1
-	logFilePart            = 0
+	HInstalledApplications = make(map[string]bool)
+
+	mutexAssets   = &sync.Mutex{}
+	mutexBar      = &sync.Mutex{}
+	mutexBuffer   = &sync.Mutex{}
+	mutexCounters = &sync.Mutex{}
+	worker        sync.WaitGroup
+
+	logFilePart = 0
+	pageSize    int
 
 	hornbillImport *apiLib.XmlmcInstStruct
-	pageSize       int
 )
 
-//----- Structures -----
-
-type siteListStruct struct {
-	SiteName string
-	SiteID   int
-}
-type groupListStruct struct {
-	GroupName string
-	GroupType int
-	GroupID   string
-}
 type counterTypeStruct struct {
 	updated                            uint16
 	created                            uint16
@@ -88,74 +81,117 @@ type counterTypeStruct struct {
 	supplierContractsAssociatedFailed  uint16
 	supplierContractsAssociatedSkipped uint16
 }
-type sqlImportConfStruct struct {
-	APIKey                   string
-	InstanceID               string
-	Entity                   string
-	HornbillUserIDColumn     string
-	LogSizeBytes             int64
-	SQLConf                  sqlConfStruct
-	CSVConf                  csvConfStruct
-	AssetTypes               []assetTypesStruct
+
+// Cache Structs
+type siteListStruct struct {
+	SiteName string
+	SiteID   int
+}
+type groupListStruct struct {
+	GroupName string
+	GroupType int
+	GroupID   string
+}
+type customerListStruct struct {
+	CustomerID     string
+	UserID         string
+	CustomerName   string
+	CustomerHandle string
+}
+
+// Config Structs
+type importConfStruct struct {
+	APIKey                   string `json:"APIKey"`
+	InstanceID               string `json:"InstanceId"`
+	KeysafeKeyID             int    `json:"KeysafeKeyID"`
 	AssetGenericFieldMapping map[string]interface{}
 	AssetTypeFieldMapping    map[string]interface{}
+	AssetTypes               []assetTypesStruct `json:"AssetTypes"`
+	HornbillUserIDColumn     string             `json:"HornbillUserIDColumn"`
+	LogSizeBytes             int64              `json:"LogSizeBytes"`
+	SourceConfig             struct {
+		CSV      csvConfStruct  `json:"CSV"`
+		Database dbConfStruct   `json:"Database"`
+		LDAP     ldapConfStruct `json:"LDAP"`
+		Source   string         `json:"Source"`
+	} `json:"SourceConfig"`
 }
 type csvConfStruct struct {
-	CommaCharacter        string
-	LazyQuotes            bool
-	FieldsPerRecord       int
-	CarriageReturnRemoval bool
+	CarriageReturnRemoval bool   `json:"CarriageReturnRemoval"`
+	CommaCharacter        string `json:"CommaCharacter"`
+	FieldsPerRecord       int    `json:"FieldsPerRecord"`
+	LazyQuotes            bool   `json:"LazyQuotes"`
 }
-
+type dbConfStruct struct {
+	Authentication string `json:"Authentication"`
+	Encrypt        bool   `json:"Encrypt"`
+	Query          string `json:"Query"`
+}
+type ldapConfStruct struct {
+	Query struct {
+		Attributes   []string `json:"Attributes"`
+		DerefAliases int      `json:"DerefAliases"`
+		Scope        int      `json:"Scope"`
+		SizeLimit    int      `json:"SizeLimit"`
+		TimeLimit    int      `json:"TimeLimit"`
+		TypesOnly    bool     `json:"TypesOnly"`
+	} `json:"Query"`
+	Server struct {
+		ConnectionType     string `json:"ConnectionType"`
+		Debug              bool   `json:"Debug"`
+		InsecureSkipVerify bool   `json:"InsecureSkipVerify"`
+	} `json:"Server"`
+}
 type assetTypesStruct struct {
-	AssetType                string
-	OperationType            string
-	PreserveShared           bool
-	PreserveState            bool
-	PreserveSubState         bool
-	PreserveOperationalState bool
-	Query                    string
-	NexthinkPlatform         string
-	AssetIdentifier          assetIdentifierStruct
-	SoftwareInventory        softwareInventoryStruct
-	Class                    string
-	TypeID                   int
+	AssetIdentifier          assetIdentifierStruct   `json:"AssetIdentifier"`
+	AssetType                string                  `json:"AssetType"`
+	LDAPDSN                  string                  `json:"LDAPDSN"`
+	NexthinkPlatform         string                  `json:"NexthinkPlatform"`
+	CSVFile                  string                  `json:"CSVFile"`
+	OperationType            string                  `json:"OperationType"`
+	PreserveOperationalState bool                    `json:"PreserveOperationalState"`
+	PreserveShared           bool                    `json:"PreserveShared"`
+	PreserveState            bool                    `json:"PreserveState"`
+	PreserveSubState         bool                    `json:"PreserveSubState"`
+	Query                    string                  `json:"Query"`
+	SoftwareInventory        softwareInventoryStruct `json:"SoftwareInventory"`
+	Class                    string                  `json:"Class"`
+	TypeID                   int                     `json:"TypeID"`
 }
-
 type assetIdentifierStruct struct {
-	DBContractColumn string
-	DBSupplierColumn string
-	DBColumn         string
-	Entity           string
-	EntityColumn     string
+	Entity               string `json:"Entity"`
+	EntityColumn         string `json:"EntityColumn"`
+	SourceColumn         string `json:"SourceColumn"`
+	SourceContractColumn string `json:"SourceContractColumn"`
+	SourceSupplierColumn string `json:"SourceSupplierColumn"`
 }
-
 type softwareInventoryStruct struct {
 	AssetIDColumn string
 	AppIDColumn   string
 	Query         string
 	Mapping       map[string]interface{}
 }
-
-type sqlConfStruct struct {
-	Driver         string
-	Server         string
-	Database       string
-	Authentication string
-	UserName       string
-	Password       string
-	Port           int
-	Query          string
-	Encrypt        bool
-	AssetID        string
+type keyDataStruct struct {
+	APIEndpoint string `json:"api_endpoint"`
+	Database    string `json:"database"`
+	Host        string `json:"host"`
+	Password    string `json:"password"`
+	Port        uint16 `json:"port"`
+	Server      string `json:"server"`
+	Username    string `json:"username"`
 }
 
-type xmlmcResponse struct {
-	MethodResult string       `xml:"status,attr"`
-	Params       paramsStruct `xml:"params"`
-	State        stateStruct  `xml:"state"`
+// XMLMC API Call Response Structs
+type xmlmcKeyResponse struct {
+	MethodResult string      `xml:"status,attr"`
+	State        stateStruct `xml:"state"`
+	Params       struct {
+		Data   string `json:"data"`
+		Schema string `json:"schema"`
+		Title  string `json:"title"`
+		Type   string `json:"type"`
+	} `json:"params"`
 }
-
 type xmlmcUpdateResponse struct {
 	MethodResult string      `xml:"status,attr"`
 	UpdatedCols  updatedCols `xml:"params>primaryEntityData>record"`
@@ -165,35 +201,11 @@ type updatedCols struct {
 	AssetPK string       `xml:"h_pk_asset_id"`
 	ColList []updatedCol `xml:",any"`
 }
-
 type updatedCol struct {
 	XMLName xml.Name `xml:""`
 	Amount  string   `xml:",chardata"`
 }
 
-//Site Structs
-type xmlmcSiteResponse struct {
-	Params struct {
-		Sites string `json:"sites"`
-		Count string `json:"count"`
-	} `json:"params"`
-	State stateJSONStruct `json:"state"`
-}
-
-type xmlmcSitesReader struct {
-	Row []struct {
-		ID   string `json:"h_id"`
-		Name string `json:"h_site_name"`
-	} `json:"row"`
-}
-type xmlmcIndySite struct {
-	Row struct {
-		ID   string `json:"h_id"`
-		Name string `json:"h_site_name"`
-	} `json:"row"`
-}
-
-//Group Structs
 type xmlmcGroupResponse struct {
 	Params struct {
 		Group []struct {
@@ -204,13 +216,6 @@ type xmlmcGroupResponse struct {
 		MaxPages int `json:"maxPages"`
 	} `json:"params"`
 	State stateJSONStruct `json:"state"`
-}
-
-//----- Customer Structs
-type customerListStruct struct {
-	CustomerID     string
-	CustomerName   string
-	CustomerHandle string
 }
 
 type xmlmcAssetRecordsResponse struct {
@@ -230,7 +235,6 @@ type xmlmcSoftwareRecordsResponse struct {
 	} `xml:"params"`
 	State stateJSONStruct `xml:"state"`
 }
-
 type softwareRecordDetailsStruct struct {
 	Count      uint64 `xml:"count"`
 	HPKID      int    `xml:"h_pk_id"`
@@ -239,23 +243,26 @@ type softwareRecordDetailsStruct struct {
 	HAppID     string `xml:"h_app_id"`
 }
 
-type xmlmcCountResponse struct {
+//Sites Structs
+type xmlmcSiteResponse struct {
 	Params struct {
-		RowData struct {
-			Row []struct {
-				Count string `json:"count"`
-			} `json:"row"`
-		} `json:"rowData"`
+		Sites string `json:"sites"`
+		Count string `json:"count"`
 	} `json:"params"`
 	State stateJSONStruct `json:"state"`
 }
-type stateJSONStruct struct {
-	Code      string `json:"code"`
-	Service   string `json:"service"`
-	Operation string `json:"operation"`
-	Error     string `json:"error"`
+type siteRowMultiple struct {
+	Row []siteDetailsStruct `json:"row"`
+}
+type siteRowSingle struct {
+	Row siteDetailsStruct `json:"row"`
+}
+type siteDetailsStruct struct {
+	ID   string `json:"h_id"`
+	Name string `json:"h_site_name"`
 }
 
+//User Structs
 type xmlmcUserListResponse struct {
 	Params struct {
 		RowData struct {
@@ -264,7 +271,6 @@ type xmlmcUserListResponse struct {
 	} `json:"params"`
 	State stateJSONStruct `json:"state"`
 }
-
 type userAccountStruct struct {
 	HUserID     string `json:"h_user_id"`
 	HLoginID    string `json:"h_login_id"`
@@ -276,26 +282,47 @@ type userAccountStruct struct {
 	HAttrib1    string `json:"h_attrib_1"`
 }
 
-//Asset Type Structures
+//Asset Type Structs
 type xmlmcTypeListResponse struct {
 	MethodResult string               `xml:"status,attr"`
 	Params       paramsTypeListStruct `xml:"params"`
 	State        stateStruct          `xml:"state"`
 }
 type paramsTypeListStruct struct {
-	RowData paramsTypeRowDataListStruct `xml:"rowData"`
-}
-type paramsTypeRowDataListStruct struct {
-	Row assetTypeObjectStruct `xml:"row"`
+	Row assetTypeObjectStruct `xml:"rowData>row"`
 }
 type assetTypeObjectStruct struct {
 	Type      string `xml:"h_name"`
 	TypeClass string `xml:"h_class"`
 	TypeID    int    `xml:"h_pk_type_id"`
 }
+
+//Application list structs
+type xmlmcApplicationResponse struct {
+	Status bool `json:"@status"`
+	Params struct {
+		Applications []struct {
+			Name string `json:"name"`
+		} `json:"application"`
+	} `json:"params"`
+	State stateJSONStruct `json:"state"`
+}
+
+//XMLMC Generic Structs
+type xmlmcResponse struct {
+	MethodResult string       `xml:"status,attr"`
+	Params       paramsStruct `xml:"params"`
+	State        stateStruct  `xml:"state"`
+}
 type stateStruct struct {
 	Code     string `xml:"code"`
 	ErrorRet string `xml:"error"`
+}
+type stateJSONStruct struct {
+	Code      string `json:"code"`
+	Service   string `json:"service"`
+	Operation string `json:"operation"`
+	Error     string `json:"error"`
 }
 type paramsStruct struct {
 	SessionID               string `xml:"sessionId"`
@@ -303,4 +330,14 @@ type paramsStruct struct {
 	Outcome                 string `xml:"outcome"`
 	SupplierAssetID         int    `xml:"supplierAssetId"`
 	SupplierContractAssetID int    `xml:"supplierContractAssetId"`
+}
+type xmlmcCountResponse struct {
+	Params struct {
+		RowData struct {
+			Row []struct {
+				Count string `json:"count"`
+			} `json:"row"`
+		} `json:"rowData"`
+	} `json:"params"`
+	State stateJSONStruct `json:"state"`
 }

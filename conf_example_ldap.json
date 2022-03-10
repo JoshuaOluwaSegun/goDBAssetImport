@@ -1,0 +1,83 @@
+{
+    "APIKey": "yourapikey",
+    "InstanceId": "yourinstanceid",
+    "KeysafeKeyID": 0,
+    "LogSizeBytes": 1000000,
+    "HornbillUserIDColumn": "h_user_id",
+    "SourceConfig": {
+        "Source": "ldap",
+        "LDAP": {
+            "Server": {
+                "InsecureSkipVerify": false,
+                "Debug": false,
+                "ConnectionType": ""
+            },
+            "Query": {
+                "Attributes": [
+                    "description",
+                    "distinguishedName",
+                    "dNSHostName",
+                    "location",
+                    "name",
+                    "operatingSystem",
+                    "operatingSystemServicePack",
+                    "operatingSystemVersion",
+                    "sAMAccountName",
+                    "servicePrincipalName",
+                    "objectGUID",
+                    "objectSid"
+                ],
+                "Scope": 2,
+                "DerefAliases": 1,
+                "TypesOnly": false,
+                "SizeLimit": 0,
+                "TimeLimit": 0
+            }
+        }
+    },
+    "AssetTypes": [{
+            "AssetType": "Desktop",
+            "OperationType": "Both",
+            "PreserveShared": false,
+            "PreserveState": false,
+            "PreserveSubState": false,
+            "PreserveOperationalState": false,
+            "LDAPDSN": "DC=dev-a,DC=itom,DC=example,DC=com",
+            "Query": "(&(objectCategory=computer)(name=DEV-A-WRK*))",
+            "AssetIdentifier": {
+                "SourceColumn": "name",
+                "Entity": "Asset",
+                "EntityColumn": "h_name"
+            }
+        },
+        {
+            "AssetType": "Server",
+            "OperationType": "Both",
+            "PreserveShared": false,
+            "PreserveState": false,
+            "PreserveSubState": false,
+            "PreserveOperationalState": false,
+            "LDAPDSN": "DC=dev-a,DC=itom,DC=example,DC=com",
+            "Query": "(&(objectCategory=computer)(name=DEV-A-SRV*))",
+            "AssetIdentifier": {
+                "SourceColumn": "name",
+                "Entity": "Asset",
+                "EntityColumn": "h_name"
+            }
+        }
+    ],
+    "AssetGenericFieldMapping": {
+        "h_name": "{{.name}}",
+        "h_asset_tag": "{{.name}}",
+        "h_description": "{{.description}}",
+        "h_notes": "Object SID: {{.objectSid}}\nObject GUID: {{.objectGUID}}"
+    },
+    "AssetTypeFieldMapping": {
+        "h_name": "{{.name}}",
+        "h_net_computer_name": "{{.dNSHostName}}",
+        "h_description": "{{.description}}",
+        "h_os_description": "{{.operatingSystem}}",
+        "h_os_service_pack": "{{.operatingSystemServicePack}}",
+        "h_os_version": "{{.operatingSystemVersion}}"
+    }
+}

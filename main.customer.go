@@ -13,13 +13,13 @@ import (
 func loadUsers() {
 	//-- Init One connection to Hornbill to load all data
 	initXMLMC()
-	logger(1, "Loading Users from Hornbill", false, true)
+	logger(3, "Loading Users from Hornbill", false, true)
 
 	count := getCount("getUserAccountsList")
-	logger(1, "getUserAccountsList Count: "+strconv.FormatUint(count, 10), false, true)
+	logger(3, "getUserAccountsList Count: "+strconv.FormatUint(count, 10), false, true)
 	getUserAccountList(count)
 
-	logger(1, "Users Loaded: "+strconv.Itoa(len(Customers)), false, true)
+	logger(3, "Users Loaded: "+strconv.Itoa(len(Customers)), false, true)
 }
 
 func getUserAccountList(count uint64) {
@@ -29,7 +29,7 @@ func getUserAccountList(count uint64) {
 	//-- Load Results in pages of pageSize
 	bar := pb.StartNew(int(count))
 	for loopCount < count {
-		logger(1, "Loading User Accounts List Offset: "+fmt.Sprintf("%d", loopCount)+"\n", false, true)
+		logger(3, "Loading User Accounts List Offset: "+fmt.Sprintf("%d", loopCount)+"\n", false, true)
 
 		hornbillImport.SetParam("application", "com.hornbill.core")
 		hornbillImport.SetParam("queryName", "getUserAccountsList")
@@ -56,7 +56,7 @@ func getUserAccountList(count uint64) {
 		//-- Push into Map
 		for index := range JSONResp.Params.RowData.Row {
 			var newCustomerForCache customerListStruct
-			switch SQLImportConf.HornbillUserIDColumn {
+			switch importConf.HornbillUserIDColumn {
 			case "h_employee_id":
 				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HEmployeeID
@@ -87,11 +87,10 @@ func getUserAccountList(count uint64) {
 				}
 			}
 			newCustomerForCache.CustomerHandle = JSONResp.Params.RowData.Row[index].HUserID
+			newCustomerForCache.UserID = JSONResp.Params.RowData.Row[index].HUserID
 			newCustomerForCache.CustomerName = JSONResp.Params.RowData.Row[index].HFirstName + " " + JSONResp.Params.RowData.Row[index].HLastName
 			customerNamedMap := []customerListStruct{newCustomerForCache}
-			mutexCustomers.Lock()
 			Customers = append(Customers, customerNamedMap...)
-			mutexCustomers.Unlock()
 		}
 
 		// Add 100
@@ -140,26 +139,22 @@ func getCount(query string) uint64 {
 	return count
 }
 
-
 func getUserID(u map[string]interface{}, userCol string, buffer *bytes.Buffer) (userID, userURN, userName string) {
-	userMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping[userCol])
+	userMapping := fmt.Sprintf("%v", importConf.AssetGenericFieldMapping[userCol])
 	userID = getFieldValue(userCol, userMapping, u, buffer)
 	if userID == "__sharedasset__" {
 		userName = "Shared"
 		userID = "SharedUser"
+		userURN = "urn:sys:0:" + userName + ":" + userID
 	} else if userID != "" && userID != "<nil>" && userID != "__clear__" {
-		mutexCustomers.Lock()
 		for _, customer := range Customers {
 			if strings.EqualFold(customer.CustomerID, userID) {
 				userName = customer.CustomerName
-				userID = customer.CustomerHandle
+				userID = customer.UserID
+				userURN = "urn:sys:0:" + userName + ":" + userID
 				break
 			}
 		}
-		mutexCustomers.Unlock()
-	}
-	if userName != "" {
-		userURN = "urn:sys:0:" + userName + ":" + userID
 	}
 	debugLog(buffer, "User Mapping:", userCol, ":", userMapping, ":", userID, ":", userName, ":", userURN)
 	return

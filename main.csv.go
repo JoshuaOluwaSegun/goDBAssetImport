@@ -21,18 +21,18 @@ func (r *customReader) Read(b []byte) (n int, err error) {
 }
 
 //func getAssetsFromCSV(csvFile string, assetType assetTypesStruct) (bool, []map[string]string) {
-func getAssetsFromCSV(csvFile string, assetType assetTypesStruct) (bool, map[string]map[string]interface{}) {
+func getAssetsFromCSV(assetType assetTypesStruct) (bool, map[string]map[string]interface{}) {
 	//Initialise Asset Map
 	arrAssetMaps := make(map[string]map[string]interface{})
-	logger(1, " ", false, false)
-	logger(3, "[CSV] Running CSV query for "+assetType.AssetType+" assets. Please wait...", true, true)
+	logger(3, " ", false, false)
+	logger(3, "Running CSV query for "+assetType.AssetType+" assets. Please wait...", true, true)
 
 	//rows := []map[string]string{}
-	file, err := os.Open(csvFile)
+	file, err := os.Open(assetType.CSVFile)
 	if err != nil {
 		// err is printable
 		// elements passed are separated by space automatically
-		logger(4, "[CSV] Error opening CSV file: "+err.Error()+" for "+assetType.AssetType+" assets.", true, true)
+		logger(4, "Error opening CSV file: "+err.Error()+" for "+assetType.AssetType+" assets.", true, true)
 		return false, arrAssetMaps
 	}
 	// automatically call Close() at the end of current method
@@ -48,24 +48,23 @@ func getAssetsFromCSV(csvFile string, assetType assetTypesStruct) (bool, map[str
 	}
 
 	var r *csv.Reader
-	if SQLImportConf.CSVConf.CarriageReturnRemoval {
+	if importConf.SourceConfig.CSV.CarriageReturnRemoval {
 		custom := &customReader{file}
 		r = csv.NewReader(custom)
 	} else {
 		r = csv.NewReader(file)
 	}
 	//because the json configuration loader cannot handle runes, code here to convert string to rune-array and getting first item
-	if SQLImportConf.CSVConf.CommaCharacter != "" {
-		CSVCommaRunes := []rune(SQLImportConf.CSVConf.CommaCharacter)
+	if importConf.SourceConfig.CSV.CommaCharacter != "" {
+		CSVCommaRunes := []rune(importConf.SourceConfig.CSV.CommaCharacter)
 		r.Comma = CSVCommaRunes[0]
-		//r.Comma = ';'
 	}
 
-	if SQLImportConf.CSVConf.LazyQuotes {
+	if importConf.SourceConfig.CSV.LazyQuotes {
 		r.LazyQuotes = true
 	}
-	if SQLImportConf.CSVConf.FieldsPerRecord > 0 {
-		r.FieldsPerRecord = SQLImportConf.CSVConf.FieldsPerRecord
+	if importConf.SourceConfig.CSV.FieldsPerRecord > 0 {
+		r.FieldsPerRecord = importConf.SourceConfig.CSV.FieldsPerRecord
 	}
 	var header []string
 
@@ -77,24 +76,22 @@ func getAssetsFromCSV(csvFile string, assetType assetTypesStruct) (bool, map[str
 			break
 		}
 		if err != nil {
-			logger(4, "[CSV] Error reading CSV data: "+err.Error()+" for "+assetType.AssetType+" assets.", true, true)
+			logger(4, "Error reading CSV data: "+err.Error()+" for "+assetType.AssetType+" assets.", true, true)
 			return false, arrAssetMaps
 		}
 		if header == nil {
 			header = record
 		} else {
 			intAssetCount++
-			//dict := map[string]string{}
 			var dict = make(map[string]interface{})
 			for i := range header {
 				dict[header[i]] = record[i]
 			}
 			intAssetSuccess++
-			arrAssetMaps[fmt.Sprintf("%s", dict[assetType.AssetIdentifier.DBColumn])] = dict
-			//rows = append(rows, dict)
+			arrAssetMaps[fmt.Sprintf("%s", dict[assetType.AssetIdentifier.SourceColumn])] = dict
 		}
 	}
-	logger(3, "[CSV] "+strconv.Itoa(intAssetSuccess)+" of "+strconv.Itoa(intAssetCount)+" returned assets successfully retrieved ready for processing.", true, true)
+	logger(3, ""+strconv.Itoa(intAssetSuccess)+" of "+strconv.Itoa(intAssetCount)+" returned assets successfully retrieved ready for processing.", true, true)
 
 	return true, arrAssetMaps
 

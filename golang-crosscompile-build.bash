@@ -32,7 +32,6 @@ do
     package=goDBAssetImport
     # add exe to windows output
     [[ "windows" == "$goos" ]] && output="$output.exe"
-    [[ "windows" == "$goos" ]] && os="win"
     [[ "386" == "$goarch" ]] && arch="x86"
     [[ "amd64" == "$goarch" ]] && arch="x64"
 
@@ -41,7 +40,7 @@ do
     destination="builds/$goos/$goarch/$output"
 
     printf "Go Build\n"
-    GOOS=$goos GOARCH=$goarch go build  -o $destination
+    GOOS=$goos GOARCH=$goarch go build -trimpath -o $destination
     # $target
 
     printf "Copy Source Files\n"
@@ -52,11 +51,8 @@ do
 
     printf "Build Zip \n"
     cd "builds/$goos/$goarch/"
-    if [ $os == "darwin" ]; then
-        os="osx"
-    fi
-    zip -r "${package}_${os}_${arch}_v${version}.zip" $output LICENSE.md README.md conf*.json > /dev/null
-    cp "${package}_${os}_${arch}_v${version}.zip" "../../../release/${package}_${os}_${arch}_v${version}.zip"
+    zip -r "${package}-${os}-${goarch}.zip" $output LICENSE.md README.md conf*.json > /dev/null
+    cp "${package}-${os}-${goarch}.zip" "../../../release/${package}-${os}-${goarch}.zip"
     cd $currentdir
     printf "\n"
 done

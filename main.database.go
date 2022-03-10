@@ -13,63 +13,63 @@ import (
 
 //buildConnectionString -- Build the connection string for the SQL driver
 func buildConnectionString() string {
-	if SQLImportConf.SQLConf.Database == "" ||
-		SQLImportConf.SQLConf.Authentication == "SQL" && (SQLImportConf.SQLConf.UserName == "" || SQLImportConf.SQLConf.Password == "") {
+	if key.Database == "" ||
+		importConf.SourceConfig.Database.Authentication == "SQL" && (key.Username == "" || key.Password == "") {
 		//Conf not set - log error and return empty string
 		logger(4, "Database configuration not set.", true, true)
 		return ""
 	}
-	if SQLImportConf.SQLConf.Driver != "odbc" {
-		logger(1, "Connecting to Database Server: "+SQLImportConf.SQLConf.Server, true, true)
+	if importConf.SourceConfig.Source != "odbc" {
+		logger(3, "Connecting to Database Server: "+key.Server, true, true)
 	} else {
-		logger(1, "Connecting to ODBC Data Source: "+SQLImportConf.SQLConf.Database, true, true)
+		logger(3, "Connecting to ODBC Data Source: "+key.Database, true, true)
 	}
 
 	connectString := ""
-	switch SQLImportConf.SQLConf.Driver {
+	switch importConf.SourceConfig.Source {
 	case "mssql":
-		connectString = "server=" + SQLImportConf.SQLConf.Server
-		connectString = connectString + ";database=" + SQLImportConf.SQLConf.Database
-		if SQLImportConf.SQLConf.Authentication == "Windows" {
+		connectString = "server=" + key.Server
+		connectString = connectString + ";database=" + key.Database
+		if importConf.SourceConfig.Database.Authentication == "Windows" {
 			connectString = connectString + ";Trusted_Connection=True"
 		} else {
-			connectString = connectString + ";user id=" + SQLImportConf.SQLConf.UserName
-			connectString = connectString + ";password=" + SQLImportConf.SQLConf.Password
+			connectString = connectString + ";user id=" + key.Username
+			connectString = connectString + ";password=" + key.Password
 		}
 
-		if !SQLImportConf.SQLConf.Encrypt {
+		if !importConf.SourceConfig.Database.Encrypt {
 			connectString = connectString + ";encrypt=disable"
 		}
-		if SQLImportConf.SQLConf.Port != 0 {
-			dbPortSetting := strconv.Itoa(SQLImportConf.SQLConf.Port)
+		if key.Port != 0 {
+			dbPortSetting := strconv.Itoa(int(key.Port))
 			connectString = connectString + ";port=" + dbPortSetting
 		}
 	case "mysql":
-		connectString = SQLImportConf.SQLConf.UserName + ":" + SQLImportConf.SQLConf.Password
-		connectString = connectString + "@tcp(" + SQLImportConf.SQLConf.Server + ":"
-		if SQLImportConf.SQLConf.Port != 0 {
-			dbPortSetting := strconv.Itoa(SQLImportConf.SQLConf.Port)
+		connectString = key.Username + ":" + key.Password
+		connectString = connectString + "@tcp(" + key.Server + ":"
+		if key.Port != 0 {
+			dbPortSetting := strconv.Itoa(int(key.Port))
 			connectString = connectString + dbPortSetting
 		} else {
 			connectString = connectString + "3306"
 		}
-		connectString = connectString + ")/" + SQLImportConf.SQLConf.Database
+		connectString = connectString + ")/" + key.Database
 	case "mysql320":
 		dbPortSetting := "3306"
-		if SQLImportConf.SQLConf.Port != 0 {
-			dbPortSetting = strconv.Itoa(SQLImportConf.SQLConf.Port)
+		if key.Port != 0 {
+			dbPortSetting = strconv.Itoa(int(key.Port))
 		}
-		connectString = "tcp:" + SQLImportConf.SQLConf.Server + ":" + dbPortSetting
-		connectString = connectString + "*" + SQLImportConf.SQLConf.Database + "/" + SQLImportConf.SQLConf.UserName + "/" + SQLImportConf.SQLConf.Password
+		connectString = "tcp:" + key.Server + ":" + dbPortSetting
+		connectString = connectString + "*" + key.Database + "/" + key.Username + "/" + key.Password
 	case "odbc":
-		connectString = "DSN=" + SQLImportConf.SQLConf.Database + ";UID=" + SQLImportConf.SQLConf.UserName + ";PWD=" + SQLImportConf.SQLConf.Password
+		connectString = "DSN=" + key.Database + ";UID=" + key.Username + ";PWD=" + key.Password
 	}
 	return connectString
 }
 
 func makeDBConnection() (db *sqlx.DB, err error) {
 	//Connect to the config specified DB
-	db, err = sqlx.Open(SQLImportConf.SQLConf.Driver, connString)
+	db, err = sqlx.Open(importConf.SourceConfig.Source, connString)
 	if err != nil {
 		err = errors.New("DB Connection Error: " + err.Error())
 		return
@@ -95,7 +95,7 @@ func queryAssets(sqlAppend string, assetType assetTypesStruct) (bool, map[string
 		return false, arrAssetMaps
 	}
 	defer db.Close()
-	logger(1, " ", false, false)
+	logger(3, " ", false, false)
 	logger(3, "[DATABASE] Running database query for "+assetType.AssetType+" assets. Please wait...", true, true)
 	//build query
 	sqlAssetQuery := BaseSQLQuery + " " + sqlAppend
@@ -124,8 +124,7 @@ func queryAssets(sqlAppend string, assetType assetTypesStruct) (bool, map[string
 					results[k] = iToS(val)
 				}
 			}
-			arrAssetMaps[fmt.Sprintf("%s", results[assetType.AssetIdentifier.DBColumn])] = results
-			intAssetSuccess++
+			arrAssetMaps[fmt.Sprintf("%s", results[assetType.AssetIdentifier.SourceColumn])] = results
 		}
 	}
 	logger(3, "[DATABASE] "+strconv.Itoa(intAssetSuccess)+" of "+strconv.Itoa(intAssetCount)+" returned assets successfully retrieved ready for processing.", true, true)

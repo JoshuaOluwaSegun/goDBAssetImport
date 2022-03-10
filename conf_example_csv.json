@@ -1,0 +1,45 @@
+{
+    "APIKey": "yourapikey",
+    "InstanceId": "yourinstanceid",
+    "LogSizeBytes": 1000000,
+    "HornbillUserIDColumn": "h_user_id",
+    "SourceConfig": {
+        "Source": "csv",
+        "CSV": {
+            "CarriageReturnRemoval": false,
+            "CommaCharacter": ",",
+            "FieldsPerRecord": 0,
+            "LazyQuotes": false
+        }
+    },
+    "AssetTypes": [{
+        "AssetType": "Desktop",
+        "OperationType": "Both",
+        "CSVFile": "DesktopsExample.csv",
+        "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
+        "AssetIdentifier": {
+            "SourceColumn": "SerialNumber",
+            "Entity": "AssetsComputer",
+            "EntityColumn": "h_serial_number",
+            "SourceContractColumn": "",
+            "SourceSupplierColumn": ""
+        }
+    }],
+    "AssetGenericFieldMapping": {
+        "h_name": "{{.Name}}",
+        "h_asset_tag": "{{.AssetTag}}",
+        "h_description": "{{.Description}}\n\n{{.Manufacturer}} {{.Model}}",
+        "h_operational_state": "{{.OperationalState}}",
+        "h_record_state": "{{.State}}"
+    },
+    "AssetTypeFieldMapping": {
+        "h_name": "{{.Name}}",
+        "h_model": "{{.Model}}",
+        "h_manufacturer": "{{.Manufacturer}}",
+        "h_description": "{{.Description}}\n\n{{.Manufacturer}} {{.Model}}",
+        "h_serial_number": "{{.SerialNumber}}"
+    }
+}

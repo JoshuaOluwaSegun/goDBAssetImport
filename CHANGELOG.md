@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 3.0.0 (March 10th, 2022)
+
+Features:
+
+- Replaced hard-coded credentials in JSON config with Keysafe keys
+- Added LDAP as a data source for importing assets
+- Added ability to update all matched asset records of a specific class, ignoring type
+- Added auto-update of utility for releases with same major version
+
+Fixed:
+
+- Owned By, Used By and Last Updated By URNs not correctly set when HornbillUserIDColumn property is set to something other than h_user_id
+- Better handled incorrect instance ID, outputs a message and ends rather than panicking
+
 ## 2.4.0 (September 9th, 2021)
 
 Changes:

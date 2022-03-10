@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"strconv"
-	"time"
+	"strings"
 	"text/template"
+	"time"
 )
 
 var (
@@ -14,7 +14,7 @@ var (
 
 func checkTemplate() bool {
 	blnFoundError := false
-	for k, v := range SQLImportConf.AssetGenericFieldMapping {
+	for k, v := range importConf.AssetGenericFieldMapping {
 		str := fmt.Sprintf("%v", v)
 		t := template.New(str).Funcs(TemplateFilters)
 		_, err := t.Parse(str)
@@ -23,7 +23,7 @@ func checkTemplate() bool {
 			blnFoundError = true
 		}
 	}
-	for k, v := range SQLImportConf.AssetTypeFieldMapping {
+	for k, v := range importConf.AssetTypeFieldMapping {
 		str := fmt.Sprintf("%v", v)
 		t := template.New(str).Funcs(TemplateFilters)
 		_, err := t.Parse(str)
@@ -32,7 +32,7 @@ func checkTemplate() bool {
 			blnFoundError = true
 		}
 	}
-	for _, assetType := range SQLImportConf.AssetTypes {
+	for _, assetType := range importConf.AssetTypes {
 		for k, v := range assetType.SoftwareInventory.Mapping {
 			str := fmt.Sprintf("%v", v)
 			t := template.New(str).Funcs(TemplateFilters)
@@ -59,7 +59,7 @@ func setTemplateFilters() {
 			if feature == "" {
 			} else if feature == "0" {
 			} else {
-				t, err := strconv.ParseInt(feature,10, 0)
+				t, err := strconv.ParseInt(feature, 10, 0)
 				if err == nil {
 					md := time.Unix(t, 0)
 					result = md.Format("2006-01-02 15:04:05")
@@ -72,7 +72,7 @@ func setTemplateFilters() {
 			if feature == "" {
 			} else if feature == "0" {
 			} else {
-				t, err := strconv.ParseInt(feature,10, 0)
+				t, err := strconv.ParseInt(feature, 10, 0)
 				if err == nil {
 					md := time.Unix(t, 0)
 					result = md.Format("2006-01-02 15:04:05")

@@ -12,13 +12,11 @@ import (
 
 func loadGroups(groups []string) {
 	//-- Init One connection to Hornbill to load all data
-	logger(1, "Loading Groups from Hornbill", false, true)
-
+	logger(3, "Loading Groups from Hornbill", false, true)
 	count := getGroupCount(groups)
-	logger(1, "getGroupCount Count: "+strconv.Itoa(count), false, true)
+	logger(3, "getGroupCount Count: "+strconv.Itoa(count), false, true)
 	getGroupList(groups, count)
-
-	logger(1, "Groups Loaded: "+strconv.Itoa(len(Groups)), false, true)
+	logger(3, "Groups Loaded: "+strconv.Itoa(len(Groups)), false, true)
 }
 
 func getGroupCount(groups []string) int {
@@ -45,11 +43,11 @@ func getGroupCount(groups []string) int {
 	}
 	err := json.Unmarshal([]byte(RespBody), &JSONResp)
 	if err != nil {
-		logger(4, "Unable to get Group List "+err.Error(), false, true)
+		logger(4, "Unable to unmarshal Group List "+err.Error(), false, true)
 		return 0
 	}
 	if JSONResp.State.Error != "" {
-		logger(4, "Unable to get Group List "+JSONResp.State.Error, false, true)
+		logger(4, "Unable to read Group List "+JSONResp.State.Error, false, true)
 		return 0
 	}
 
@@ -65,7 +63,7 @@ func getGroupList(groups []string, count int) {
 	bar := pb.StartNew(int(count))
 	for (pageCount * pageSize) < count {
 		pageCount++
-		logger(1, "Loading Group List Offset: "+strconv.Itoa(pageCount), false, true)
+		logger(3, "Loading Group List Offset: "+strconv.Itoa(pageCount), false, true)
 
 		hornbillImport.SetParam("singleLevelOnly", "false")
 		for _, group := range groups {
@@ -84,16 +82,16 @@ func getGroupList(groups []string, count int) {
 
 		var JSONResp xmlmcGroupResponse
 		if xmlmcErr != nil {
-			logger(4, "Unable to Query Group List "+xmlmcErr.Error(), false, true)
+			logger(4, "Unable to get Group List "+xmlmcErr.Error(), false, true)
 			break
 		}
 		err := json.Unmarshal([]byte(RespBody), &JSONResp)
 		if err != nil {
-			logger(4, "Unable to Query Groups List "+err.Error(), false, true)
+			logger(4, "Unable to unmarshal Groups List "+err.Error(), false, true)
 			break
 		}
 		if JSONResp.State.Error != "" {
-			logger(4, "Unable to Query Groups List "+JSONResp.State.Error, false, true)
+			logger(4, "Unable to read Groups List "+JSONResp.State.Error, false, true)
 			break
 		}
 		//-- Push into Map
@@ -109,14 +107,10 @@ func getGroupList(groups []string, count int) {
 				newGroupForCache.GroupType = 2
 			}
 			name := []groupListStruct{newGroupForCache}
-			mutexGroup.Lock()
 			Groups = append(Groups, name...)
-			mutexGroup.Unlock()
 		}
 
-		// Add 100
 		bar.Add(len(JSONResp.Params.Group))
-		//-- Check for empty result set
 		if len(JSONResp.Params.Group) == 0 {
 			break
 		}
@@ -135,18 +129,16 @@ func getGroupID(u map[string]interface{}, groupType string, buffer *bytes.Buffer
 		groupTypeID = 5
 		groupCol = "h_company_name"
 	}
-	groupNameMapping := fmt.Sprintf("%v", SQLImportConf.AssetGenericFieldMapping[groupCol])
+	groupNameMapping := fmt.Sprintf("%v", importConf.AssetGenericFieldMapping[groupCol])
 	groupName = getFieldValue(groupCol, groupNameMapping, u, buffer)
 	if groupName != "" && groupName != "<nil>" && groupName != "__clear__" {
 		//-- Check if group is in Cache
-		mutexGroup.Lock()
 		for _, group := range Groups {
 			if strings.EqualFold(group.GroupName, groupName) && group.GroupType == groupTypeID {
 				groupID = group.GroupID
 				break
 			}
 		}
-		mutexGroup.Unlock()
 	}
 	debugLog(buffer, "Group Mapping:", groupCol, ":", groupNameMapping, ":", groupName, ":", groupID)
 	return

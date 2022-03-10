@@ -18,13 +18,16 @@ import (
 )
 
 func initXMLMC() {
+	endpoint := apiLib.GetEndPointFromName(importConf.InstanceID)
+	if endpoint == "" {
+		logger(4, "Unable to retrieve endpoint information for the supplied InstanceID: "+importConf.InstanceID, true, false)
+		os.Exit(1)
+	}
 
-	hornbillImport = apiLib.NewXmlmcInstance(SQLImportConf.InstanceID)
-	hornbillImport.SetAPIKey(SQLImportConf.APIKey)
+	hornbillImport = apiLib.NewXmlmcInstance(importConf.InstanceID)
+	hornbillImport.SetAPIKey(importConf.APIKey)
 	hornbillImport.SetTimeout(60)
 	hornbillImport.SetJSONResponse(true)
-
-	pageSize = 0
 
 	if pageSize == 0 {
 		pageSize = 100
@@ -36,7 +39,7 @@ func getFieldValue(k string, v string, u map[string]interface{}, buffer *bytes.B
 	debugLog(buffer, "getFieldValue:", k, ":", v)
 	fieldMap := v
 	if fieldMap == "__hbassettype__" {
-		debugLog(buffer, "Returning AssetType:", StrAssetType)
+		debugLog(buffer, "Returning Asset Type:", StrAssetType)
 		return StrAssetType
 	}
 
@@ -152,17 +155,14 @@ func logger(t int, s string, outputtoCLI bool, outputToEsp bool) {
 	if outputToEsp {
 		espLogger(s, espLogType)
 	}
-	mutex.Lock()
 	// assign it to the standard logger
 	log.SetOutput(f)
 	log.Println(errorLogPrefix + s)
-	mutex.Unlock()
 }
 
 func loggerGen(t int, s string) string {
-
-	var errorLogPrefix = ""
 	//-- Create Log Entry
+	var errorLogPrefix = ""
 	switch t {
 	case 1:
 		errorLogPrefix = "[DEBUG] "
@@ -231,6 +231,36 @@ func Hash(arr []map[string]interface{}) string {
 	return md5str
 }
 
+// getKeysafeKey - returns key details
+func getKeysafeKey(keyId int) {
+	//API Call to get the key data
+	hornbillImport.SetParam("keyId", strconv.Itoa(keyId))
+	hornbillImport.SetParam("wantKeyData", "true")
+	RespBody, xmlmcErr := hornbillImport.Invoke("admin", "keysafeGetKey")
+	var JSONResp xmlmcKeyResponse
+	if xmlmcErr != nil {
+		logger(4, "Unable to retrieve key information from Keysafe: "+xmlmcErr.Error(), true, true)
+		os.Exit(1)
+	}
+	//Unmarashal the API response
+	err := json.Unmarshal([]byte(RespBody), &JSONResp)
+	if err != nil {
+		logger(4, "Unable to unmarshal key information from Keysafe: "+err.Error(), true, true)
+		os.Exit(1)
+	}
+	if JSONResp.State.ErrorRet != "" {
+		logger(4, "API call to retrieve key information from Keysafe failed: "+JSONResp.State.ErrorRet, true, true)
+		os.Exit(1)
+	}
+
+	// Now we need to unmarshal the key data itself
+	err = json.Unmarshal([]byte(JSONResp.Params.Data), &key)
+	if err != nil {
+		logger(4, "Unable to unmarshal Keysafe key data JSON: "+err.Error(), true, true)
+		os.Exit(1)
+	}
+}
+
 // espLogger -- Log to ESP
 func espLogger(message string, severity string) {
 	if configDryRun {
@@ -254,19 +284,19 @@ func checkConfig() (err error) {
 	)
 	r, _ := regexp.Compile(regex)
 
-	for k, v := range SQLImportConf.AssetGenericFieldMapping {
+	for k, v := range importConf.AssetGenericFieldMapping {
 		if r.MatchString(v.(string)) {
 			errorArr = append(errorArr, "AssetGenericFieldMapping - "+k+":"+v.(string))
 		}
 	}
 
-	for k, v := range SQLImportConf.AssetTypeFieldMapping {
+	for k, v := range importConf.AssetTypeFieldMapping {
 		if r.MatchString(v.(string)) {
 			errorArr = append(errorArr, "AssetTypeFieldMapping - "+k+":"+v.(string))
 		}
 	}
 
-	for _, assetType := range SQLImportConf.AssetTypes {
+	for _, assetType := range importConf.AssetTypes {
 		for k, v := range assetType.SoftwareInventory.Mapping {
 			if r.MatchString(v.(string)) {
 				errorArr = append(errorArr, assetType.AssetType+" SoftwareInventory.Mapping  - "+k+":"+v.(string))
@@ -277,4 +307,32 @@ func checkConfig() (err error) {
 		err = errors.New(strings.Join(errorArr[:], "\n"))
 	}
 	return
+}
+
+func supplierManagerInstalled() bool {
+	return isAppInstalled("com.hornbill.suppliermanager")
+}
+func isAppInstalled(app string) (appInstalled bool) {
+	_, appInstalled = HInstalledApplications[app]
+	return
+}
+func getApplications() {
+	XMLAppList, xmlmcErr := hornbillImport.Invoke("session", "getApplicationList")
+	if xmlmcErr != nil {
+		logger(4, "API Call failed when trying to get application list:"+xmlmcErr.Error(), true, true)
+		return
+	}
+	var apiResponse xmlmcApplicationResponse
+	err := json.Unmarshal([]byte(XMLAppList), &apiResponse)
+	if err != nil {
+		logger(3, "Failed to read applications: "+err.Error(), true, true)
+		return
+	}
+	if !apiResponse.Status {
+		logger(3, "Failed to return applications list: "+apiResponse.State.Error, true, true)
+		return
+	}
+	for i := 0; i < len(apiResponse.Params.Applications); i++ {
+		HInstalledApplications[apiResponse.Params.Applications[i].Name] = true
+	}
 }

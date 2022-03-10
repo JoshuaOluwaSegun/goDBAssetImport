@@ -20,7 +20,9 @@ func getAssetCount(assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct)
 	hornbillImport.SetParam("queryName", "getAssetsListForImport")
 	hornbillImport.OpenElement("queryParams")
 	hornbillImport.SetParam("classId", assetType.Class)
-	hornbillImport.SetParam("typeId", strconv.Itoa(assetType.TypeID))
+	if assetType.TypeID != 0 {
+		hornbillImport.SetParam("typeId", strconv.Itoa(assetType.TypeID))
+	}
 	hornbillImport.CloseElement("queryParams")
 	hornbillImport.OpenElement("queryOptions")
 	hornbillImport.SetParam("queryType", "count")
@@ -84,7 +86,9 @@ func getAssetRecords(assetCount uint64, assetType assetTypesStruct, espXmlmc *ap
 		hornbillImport.SetParam("rowstart", strconv.FormatUint(loopCount, 10))
 		hornbillImport.SetParam("limit", strconv.Itoa(pageSize))
 		hornbillImport.SetParam("classId", assetType.Class)
-		hornbillImport.SetParam("typeId", strconv.Itoa(assetType.TypeID))
+		if assetType.TypeID != 0 {
+			hornbillImport.SetParam("typeId", strconv.Itoa(assetType.TypeID))
+		}
 		hornbillImport.CloseElement("queryParams")
 		hornbillImport.OpenElement("queryOptions")
 		hornbillImport.SetParam("queryType", queryType)
@@ -115,8 +119,8 @@ func getAssetRecords(assetCount uint64, assetType assetTypesStruct, espXmlmc *ap
 			break
 		}
 		for _, v := range JSONResp.Params.RowData.Row {
+			bar.Add(1)
 			if v[assetType.AssetIdentifier.EntityColumn] != nil {
-				bar.Add(1)
 				keyVal := fmt.Sprintf("%s", v[assetType.AssetIdentifier.EntityColumn])
 				recordMap[keyVal] = v
 			}
@@ -129,8 +133,8 @@ func getAssetRecords(assetCount uint64, assetType assetTypesStruct, espXmlmc *ap
 
 //getAssetClass -- Get Asset Class & Type ID from Asset Type Name
 func getAssetClass(confAssetType string) (assetClass string, assetType int) {
-	espXmlmc := apiLib.NewXmlmcInstance(SQLImportConf.InstanceID)
-	espXmlmc.SetAPIKey(SQLImportConf.APIKey)
+	espXmlmc := apiLib.NewXmlmcInstance(importConf.InstanceID)
+	espXmlmc.SetAPIKey(importConf.APIKey)
 	espXmlmc.SetParam("application", appServiceManager)
 	espXmlmc.SetParam("entity", "AssetsTypes")
 	espXmlmc.OpenElement("searchFilter")
@@ -152,8 +156,8 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 		logger(4, "Could not get Asset Class and Type. Please check AssetType within your configuration file:"+err.Error(), true, true)
 		logger(1, "API XML: "+XMLSTRING, false, true)
 	} else {
-		assetClass = xmlRespon.Params.RowData.Row.TypeClass
-		assetType = xmlRespon.Params.RowData.Row.TypeID
+		assetClass = xmlRespon.Params.Row.TypeClass
+		assetType = xmlRespon.Params.Row.TypeID
 	}
 	return
 }
@@ -162,17 +166,17 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 //--If asset already exists on the instance, update
 //--If asset doesn't exist, create
 func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[string]map[string]interface{}, assetType assetTypesStruct) {
-	logger(1, "Processing "+assetType.AssetType+" Type Assets...", true, true)
+	logger(3, "Processing "+strconv.Itoa(len(arrAssets))+" of "+assetType.AssetType+" Type Assets...", true, true)
 	bar := pb.StartNew(len(arrAssets))
 
 	//Get the identity of the AssetID field from the config
-	assetIDIdent := fmt.Sprintf("%v", assetType.AssetIdentifier.DBColumn)
-	debugLog(nil, "Asset Identifier:", assetType.AssetIdentifier.Entity, assetType.AssetIdentifier.EntityColumn, assetType.AssetIdentifier.DBColumn, assetIDIdent)
-	blnContractConnect := supplierManagerInstalled() && assetType.AssetIdentifier.DBContractColumn != ""
-	blnSupplierConnect := supplierManagerInstalled() && assetType.AssetIdentifier.DBSupplierColumn != ""
+	assetIDIdent := fmt.Sprintf("%v", assetType.AssetIdentifier.SourceColumn)
+	debugLog(nil, "Asset Identifier:", assetType.AssetIdentifier.Entity, assetType.AssetIdentifier.EntityColumn, assetType.AssetIdentifier.SourceColumn, assetIDIdent)
+	blnContractConnect := supplierManagerInstalled() && assetType.AssetIdentifier.SourceContractColumn != ""
+	blnSupplierConnect := supplierManagerInstalled() && assetType.AssetIdentifier.SourceSupplierColumn != ""
 
 	//-- Loop each asset
-	maxGoroutinesGuard := make(chan struct{}, maxGoroutines)
+	maxGoroutinesGuard := make(chan struct{}, configMaxRoutines)
 	for _, assetRecord := range arrAssets {
 		maxGoroutinesGuard <- struct{}{}
 		worker.Add(1)
@@ -208,7 +212,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 				softwareRecordsHash string
 			)
 
-			if !configCSV && !configNexthink {
+			if !configCSV && !configNexthink && !configLDAP {
 				//One DB connection per worker
 				db, err = makeDBConnection()
 				if err != nil {
@@ -218,8 +222,8 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 			}
 
 			//One XMLMC connection per worker
-			espXmlmc := apiLib.NewXmlmcInstance(SQLImportConf.InstanceID)
-			espXmlmc.SetAPIKey(SQLImportConf.APIKey)
+			espXmlmc := apiLib.NewXmlmcInstance(importConf.InstanceID)
+			espXmlmc.SetAPIKey(importConf.APIKey)
 
 			buffer.WriteString(loggerGen(1, "    "))
 			buffer.WriteString(loggerGen(1, "Processing Asset: "+assetID))
@@ -345,7 +349,6 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 						usedBy = iToS(assetMap["h_used_by_name"])
 					}
 					buffer.WriteString(loggerGen(1, "Update Asset: "+assetID))
-					//boolActioned = updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc, db, &buffer)
 					boolActioned = updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc, &buffer)
 				} else {
 					buffer.WriteString(loggerGen(1, "Asset match found, but OperationType not set to Both or Update"))
@@ -369,7 +372,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 			// additional stuff
 			if boolActioned && assetIDInstance != "" {
 				if blnSupplierConnect {
-					supplierID := iToS(assetMap[assetType.AssetIdentifier.DBSupplierColumn])
+					supplierID := iToS(assetMap[assetType.AssetIdentifier.SourceSupplierColumn])
 					if supplierID != "" {
 
 						err = addSupplierToAsset(assetIDInstance, supplierID, espXmlmc, &buffer)
@@ -380,7 +383,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 					}
 				}
 				if blnContractConnect {
-					contractID := iToS(assetMap[assetType.AssetIdentifier.DBContractColumn])
+					contractID := iToS(assetMap[assetType.AssetIdentifier.SourceContractColumn])
 					if contractID != "" {
 						err = addSupplierContractToAsset(assetIDInstance, contractID, espXmlmc, &buffer)
 						if err != nil {
@@ -458,7 +461,7 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 
 	//Get asset field mapping
 	debugLog(buffer, "Asset Field Mapping")
-	for k, v := range SQLImportConf.AssetGenericFieldMapping {
+	for k, v := range importConf.AssetGenericFieldMapping {
 		strMapping := fmt.Sprintf("%v", v)
 		value := getFieldValue(k, strMapping, u, buffer)
 		debugLog(buffer, k, ":", strMapping, ":", value)
@@ -529,7 +532,7 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 	debugLog(buffer, "Asset Type Field Mapping")
 
 	//Get asset field mapping
-	for k, v := range SQLImportConf.AssetTypeFieldMapping {
+	for k, v := range importConf.AssetTypeFieldMapping {
 		strMapping := fmt.Sprintf("%v", v)
 		value := getFieldValue(k, strMapping, u, buffer)
 		debugLog(buffer, k, ":", strMapping, ":", value)
@@ -687,7 +690,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 	debugLog(buffer, "Asset Field Mapping")
 
 	//Get asset field mapping
-	for k, v := range SQLImportConf.AssetGenericFieldMapping {
+	for k, v := range importConf.AssetGenericFieldMapping {
 		strMapping := fmt.Sprintf("%v", v)
 		value := getFieldValue(k, strMapping, u, buffer)
 		debugLog(buffer, k, ":", strMapping, ":", value)
@@ -849,7 +852,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 		debugLog(buffer, "Asset Field Mapping")
 
 		//Get asset field mapping
-		for k, v := range SQLImportConf.AssetTypeFieldMapping {
+		for k, v := range importConf.AssetTypeFieldMapping {
 			strMapping := fmt.Sprintf("%v", v)
 			value := getFieldValue(k, strMapping, u, buffer)
 			debugLog(buffer, k, ":", strMapping, ":", value)

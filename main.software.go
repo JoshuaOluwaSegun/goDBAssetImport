@@ -22,7 +22,7 @@ func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, es
 			debugLog(buffer, "Asset ID found in source data record:", swAssetID)
 			if configNexthink {
 				swAssetID = iToS(u["id"])
-				softwareRecords, softwareRecordsHash, err = queryNexthingSoftwareInventoryRecords(swAssetID, assetType, buffer)
+				softwareRecords, softwareRecordsHash, err = queryNexthinkSoftwareInventoryRecords(swAssetID, assetType, buffer)
 				if err != nil {
 					err = errors.New("Unable to read software inventory records from Nexthink:" + err.Error())
 				}

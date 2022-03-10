@@ -19,10 +19,10 @@ func getAssetsFromNexthink(assetType assetTypesStruct) (map[string]map[string]in
 	//Initialise Asset Map
 	var arrAssetMaps []map[string]interface{}
 	returnMap := make(map[string]map[string]interface{})
-	logger(1, " ", false, false)
+	logger(3, " ", false, false)
 	logger(3, "[NEXTHINK] Running Nexthink query for "+assetType.AssetType+" assets. Please wait...", true, true)
 
-	strUrl := SQLImportConf.SQLConf.Server + "/query?"
+	strUrl := key.Server + "/query?"
 	if assetType.NexthinkPlatform != "" {
 		strUrl += "platform=" + assetType.NexthinkPlatform + "&"
 	}
@@ -33,7 +33,7 @@ func getAssetsFromNexthink(assetType assetTypesStruct) (map[string]map[string]in
 	if err != nil {
 		return returnMap, err
 	}
-	auth := base64.StdEncoding.EncodeToString([]byte(SQLImportConf.SQLConf.UserName + ":" + SQLImportConf.SQLConf.Password))
+	auth := base64.StdEncoding.EncodeToString([]byte(key.Username + ":" + key.Password))
 	req.Header.Set("Authorization", "Basic "+auth)
 	req.Header.Set("User-Agent", appName+"/"+version)
 
@@ -61,7 +61,7 @@ func getAssetsFromNexthink(assetType assetTypesStruct) (map[string]map[string]in
 		log.Fatal(err)
 	}
 	for _, v := range arrAssetMaps {
-		assetIdentifier := fmt.Sprintf("%s", v[assetType.AssetIdentifier.DBColumn])
+		assetIdentifier := fmt.Sprintf("%s", v[assetType.AssetIdentifier.SourceColumn])
 		returnMap[assetIdentifier] = make(map[string]interface{})
 		for field, value := range v {
 			switch actualVal := value.(type) {
@@ -81,7 +81,6 @@ func getAssetsFromNexthink(assetType assetTypesStruct) (map[string]map[string]in
 				returnMap[assetIdentifier][field] = actualVal
 			}
 		}
-
 	}
 	return returnMap, nil
 }
@@ -100,7 +99,7 @@ func byteCountSI(b float64) string {
 		float64(b)/float64(div), "kMGTPE"[exp])
 }
 
-func queryNexthingSoftwareInventoryRecords(assetID string, assetType assetTypesStruct, buffer *bytes.Buffer) (map[string]map[string]interface{}, string, error) {
+func queryNexthinkSoftwareInventoryRecords(assetID string, assetType assetTypesStruct, buffer *bytes.Buffer) (map[string]map[string]interface{}, string, error) {
 
 	var (
 		returnMap = make(map[string]map[string]interface{})
@@ -113,7 +112,7 @@ func queryNexthingSoftwareInventoryRecords(assetID string, assetType assetTypesS
 	var arrSoftwareMaps []map[string]interface{}
 	buffer.WriteString(loggerGen(3, "[NEXTHINK] Running Nexthink query for software against "+assetID+" asset. Please wait..."))
 
-	strUrl := SQLImportConf.SQLConf.Server + "/query?"
+	strUrl := key.Server + "/query?"
 	strUrl += "query=" + url.QueryEscape(sqlAssetQuery)
 	strUrl += "&format=json"
 
@@ -122,7 +121,7 @@ func queryNexthingSoftwareInventoryRecords(assetID string, assetType assetTypesS
 	if err != nil {
 		return returnMap, hash, err
 	}
-	auth := base64.StdEncoding.EncodeToString([]byte(SQLImportConf.SQLConf.UserName + ":" + SQLImportConf.SQLConf.Password))
+	auth := base64.StdEncoding.EncodeToString([]byte(key.Username + ":" + key.Password))
 	req.Header.Set("Authorization", "Basic "+auth)
 	req.Header.Set("User-Agent", appName+"/"+version)
 
