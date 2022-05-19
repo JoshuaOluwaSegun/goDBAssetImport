@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 3.0.1 (March 19th, 2022)
+
+Fixed:
+
+- The SourceConfig Query was not being used resulting that AssetType Queries are erroring out
+
+
 ## 3.0.0 (March 10th, 2022)
 
 Features:
