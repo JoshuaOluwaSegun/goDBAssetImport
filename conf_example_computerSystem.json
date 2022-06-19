@@ -16,6 +16,7 @@
             "AssetType": "Server",
             "OperationType": "Both",
             "Query": "",
+	    "InPolicy": "yes - though this is NOT yet implemented - please omit this line entirely until the dependent change has been implemented server side",
             "PreserveShared": false,
             "PreserveState": false,
             "PreserveSubState": false,

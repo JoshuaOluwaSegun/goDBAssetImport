@@ -124,7 +124,7 @@ func main() {
 			v.TypeID = 0
 			v.Class = strings.Split(v.AssetType, ":")[1]
 		}
-
+		
 		//-- Query Data Source
 		boolSQLAssets := false
 		var arrAssets map[string]map[string]interface{}

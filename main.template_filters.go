@@ -56,8 +56,7 @@ func setTemplateFilters() {
 		},
 		"epoch": func(feature string) string {
 			result := ""
-			if feature == "" {
-			} else if feature == "0" {
+			if feature == "" || feature == "0" {
 			} else {
 				t, err := strconv.ParseInt(feature, 10, 0)
 				if err == nil {
@@ -69,14 +68,30 @@ func setTemplateFilters() {
 		},
 		"epoch_clear": func(feature string) string {
 			result := "__clear__"
-			if feature == "" {
-			} else if feature == "0" {
+			if feature == "" || feature == "0" {
 			} else {
 				t, err := strconv.ParseInt(feature, 10, 0)
 				if err == nil {
 					md := time.Unix(t, 0)
 					result = md.Format("2006-01-02 15:04:05")
 				}
+			}
+			return result
+		},
+		// {{ .Name | date_conversion \"02/01/2006 15:04\" }}
+		"date_conversion": func(layoutFormat string, dateString string) string {
+			result := ""
+			dt, err := time.Parse(layoutFormat, dateString)
+				if err == nil {
+				result = dt.Format("2006-01-02 15:04:05")
+			}
+			return result
+		},
+		"date_conversion_clear": func(layoutFormat string, dateString string) string {
+			result := "__clear__"
+			dt, err := time.Parse(layoutFormat, dateString)
+				if err == nil {
+				result = dt.Format("2006-01-02 15:04:05")
 			}
 			return result
 		},

@@ -16,7 +16,7 @@ import (
 )
 
 func getAssetCount(assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct) (assetCount uint64, err error) {
-	hornbillImport.SetParam("application", "com.hornbill.servicemanager")
+	hornbillImport.SetParam("application", appServiceManager)
 	hornbillImport.SetParam("queryName", "getAssetsListForImport")
 	hornbillImport.OpenElement("queryParams")
 	hornbillImport.SetParam("classId", assetType.Class)
@@ -80,7 +80,7 @@ func getAssetRecords(assetCount uint64, assetType assetTypesStruct, espXmlmc *ap
 	RespBody := ""
 	for loopCount < assetCount {
 		logger(1, "Loading Asset List Offset: "+fmt.Sprintf("%d", loopCount)+"\n", false, false)
-		hornbillImport.SetParam("application", "com.hornbill.servicemanager")
+		hornbillImport.SetParam("application", appServiceManager)
 		hornbillImport.SetParam("queryName", "getAssetsListForImport")
 		hornbillImport.OpenElement("queryParams")
 		hornbillImport.SetParam("rowstart", strconv.FormatUint(loopCount, 10))
@@ -92,6 +92,9 @@ func getAssetRecords(assetCount uint64, assetType assetTypesStruct, espXmlmc *ap
 		hornbillImport.CloseElement("queryParams")
 		hornbillImport.OpenElement("queryOptions")
 		hornbillImport.SetParam("queryType", queryType)
+		if assetType.InPolicyField != "" {
+			hornbillImport.SetParam("inPolicyInclusion", "true")
+		}
 		hornbillImport.CloseElement("queryOptions")
 
 		RespBody, err = hornbillImport.Invoke("data", "queryExec")
@@ -160,6 +163,95 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 		assetType = xmlRespon.Params.Row.TypeID
 	}
 	return
+}
+
+
+// addInPolicy --
+func addInPolicy(assetId string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes.Buffer) bool {
+	boolReturn := false
+
+	espXmlmc.SetParam("application", appServiceManager)
+	espXmlmc.SetParam("entity", "ConfigurationItemsInPolicy")
+	espXmlmc.SetParam("returnModifiedData", "false")
+	espXmlmc.OpenElement("primaryEntityData")
+	espXmlmc.OpenElement("record")
+	espXmlmc.SetParam("h_entity_id", assetId)
+	espXmlmc.SetParam("h_entity_name", "asset")
+	espXmlmc.CloseElement("record")
+	espXmlmc.CloseElement("primaryEntityData")
+
+	var XMLSTRING = espXmlmc.GetParam()
+	if !configDryRun {
+		XMLSiteSearch, xmlmcErr := espXmlmc.Invoke("data", "entityAddRecord")
+		if xmlmcErr != nil {
+			buffer.WriteString(loggerGen(4, "API Call failed when trying to bring asset in policy: "+xmlmcErr.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
+		}
+		var xmlRespon xmlmcResponse
+
+		err := xml.Unmarshal([]byte(XMLSiteSearch), &xmlRespon)
+		if err != nil {
+			buffer.WriteString(loggerGen(4, "Failed to bring asset in policy: "+err.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
+		} else {
+			if xmlRespon.MethodResult != "ok" {
+				buffer.WriteString(loggerGen(4, "Failed to bring asset in policy: "+xmlRespon.State.ErrorRet))
+				buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+				return boolReturn
+			} else {
+				boolReturn = true
+			}
+		}
+	} else {
+		buffer.WriteString(loggerGen(1, "Asset Policy XML: "+XMLSTRING))
+		espXmlmc.ClearParam()
+		boolReturn = true
+	}
+	return boolReturn
+}
+
+// removeInPolicy --
+func removeInPolicy(inPolicyId string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes.Buffer) bool {
+	boolReturn := false
+
+	espXmlmc.SetParam("application", appServiceManager)
+	espXmlmc.SetParam("entity", "ConfigurationItemsInPolicy")
+	espXmlmc.SetParam("keyValue", inPolicyId)
+	espXmlmc.SetParam("preserveOneToOneData", "true")
+	espXmlmc.SetParam("preserveOneToManyData", "true")
+
+	var XMLSTRING = espXmlmc.GetParam()
+	if !configDryRun {
+		XMLSiteSearch, xmlmcErr := espXmlmc.Invoke("data", "entityDeleteRecord")
+		if xmlmcErr != nil {
+			buffer.WriteString(loggerGen(4, "API Call failed when trying to remove the asset out of policy: "+xmlmcErr.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
+		}
+		var xmlRespon xmlmcResponse
+
+		err := xml.Unmarshal([]byte(XMLSiteSearch), &xmlRespon)
+		if err != nil {
+			buffer.WriteString(loggerGen(4, "Failed to bring asset out of policy: "+err.Error()))
+			buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+			return boolReturn
+		} else {
+			if xmlRespon.MethodResult != "ok" {
+				buffer.WriteString(loggerGen(4, "Failed to bring asset out of policy: "+xmlRespon.State.ErrorRet))
+				buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
+				return boolReturn
+			} else {
+				boolReturn = true
+			}
+		}
+	} else {
+		buffer.WriteString(loggerGen(1, "Asset Policy XML: "+XMLSTRING))
+		espXmlmc.ClearParam()
+		boolReturn = true
+	}
+	return boolReturn
 }
 
 //processAssets -- Processes Assets from Asset Map
@@ -350,6 +442,27 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 					}
 					buffer.WriteString(loggerGen(1, "Update Asset: "+assetID))
 					boolActioned = updateAsset(assetType, assetMap, assetIDInstance, assetID, usedBy, espXmlmc, &buffer)
+					if strings.ToLower(assetType.InPolicyField) == "yes" {
+						inPolicyId, ok := assetMap["h_pk_confiteminpolicyid"]
+						var strIPID string
+						if ok {
+							strIPID = fmt.Sprintf("%v", inPolicyId)
+						}
+						if strIPID != "" && strIPID != "0" {
+							// in policy exists, so no need to do anything
+						} else {
+							addInPolicy(assetIDInstance, espXmlmc, &buffer)
+						}
+					} else if assetType.InPolicyField == "__clear__" {
+						inPolicyId, ok := assetMap["h_pk_confiteminpolicyid"];
+						if ok {
+							var strIPID string
+							strIPID = fmt.Sprintf("%v", inPolicyId)
+							if strIPID != "" && strIPID != "0" {
+								removeInPolicy(strIPID, espXmlmc, &buffer)
+							}
+						}
+					}
 				} else {
 					buffer.WriteString(loggerGen(1, "Asset match found, but OperationType not set to Both or Update"))
 				}
@@ -358,6 +471,10 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 				if assetType.OperationType == "" || strings.ToLower(assetType.OperationType) == "both" || strings.ToLower(assetType.OperationType) == "create" {
 					buffer.WriteString(loggerGen(1, "Create Asset: "+assetID))
 					assetIDInstance, boolActioned = createAsset(assetType, assetMap, assetID, espXmlmc, db, &buffer)
+					if strings.ToLower(assetType.InPolicyField) == "yes" {
+						addInPolicy(assetIDInstance, espXmlmc, &buffer)
+					}
+					
 				} else {
 					buffer.WriteString(loggerGen(1, "Asset match not found, but OperationType not set to Both or Create"))
 				}
@@ -592,7 +709,7 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 			buffer.WriteString(loggerGen(1, "Asset record created successfully: "+assetID))
 
 			//Now add asset URN
-			espXmlmc.SetParam("application", "com.hornbill.servicemanager")
+			espXmlmc.SetParam("application", appServiceManager)
 			espXmlmc.SetParam("entity", "Asset")
 			espXmlmc.OpenElement("primaryEntityData")
 			espXmlmc.OpenElement("record")

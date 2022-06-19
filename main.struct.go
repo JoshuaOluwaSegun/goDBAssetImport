@@ -10,7 +10,7 @@ import (
 
 //----- Constants -----
 const (
-	version           = "3.0.1"
+	version           = "3.0.2"
 	repo              = "hornbill/goDBAssetImport"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
@@ -149,6 +149,7 @@ type assetTypesStruct struct {
 	NexthinkPlatform         string                  `json:"NexthinkPlatform"`
 	CSVFile                  string                  `json:"CSVFile"`
 	OperationType            string                  `json:"OperationType"`
+	InPolicyField            string                  `json:"InPolicy"`
 	PreserveOperationalState bool                    `json:"PreserveOperationalState"`
 	PreserveShared           bool                    `json:"PreserveShared"`
 	PreserveState            bool                    `json:"PreserveState"`

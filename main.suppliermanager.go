@@ -14,6 +14,8 @@ func addSupplierToAsset(assetID, supplierID string, espXmlmc *apiLib.XmlmcInstSt
 	espXmlmc.SetParam("assetId", assetID)
 	XMLSTRING := espXmlmc.GetParam()
 	debugLog(buffer, "Add Supplier to Asset Create XML:", XMLSTRING)
+	if !configDryRun {
+
 	XMLUpdate, xmlmcErr := espXmlmc.Invoke("apps/com.hornbill.suppliermanager/SupplierAssets", "addSupplierAsset")
 	if xmlmcErr != nil {
 		buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
@@ -44,6 +46,7 @@ func addSupplierToAsset(assetID, supplierID string, espXmlmc *apiLib.XmlmcInstSt
 		return
 	}
 	debugLog(buffer, "Supplier to Asset relationship record successfully created: "+strconv.Itoa(xmlRespon.Params.SupplierAssetID))
+	}
 	mutexCounters.Lock()
 	counters.suppliersAssociatedSuccess++
 	mutexCounters.Unlock()
@@ -55,6 +58,9 @@ func addSupplierContractToAsset(assetID, contractID string, espXmlmc *apiLib.Xml
 	espXmlmc.SetParam("assetId", assetID)
 	XMLSTRING := espXmlmc.GetParam()
 	debugLog(buffer, "Add Supplier Contract to Asset Create XML:", XMLSTRING)
+
+	if !configDryRun {
+
 	XMLUpdate, xmlmcErr := espXmlmc.Invoke("apps/com.hornbill.suppliermanager/SupplierContractAssets", "addSupplierContractAsset")
 	if xmlmcErr != nil {
 		buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
@@ -85,6 +91,7 @@ func addSupplierContractToAsset(assetID, contractID string, espXmlmc *apiLib.Xml
 		return
 	}
 	debugLog(buffer, "Supplier Contract to Asset relationship record successfully created: "+strconv.Itoa(xmlRespon.Params.SupplierContractAssetID))
+	}
 	mutexCounters.Lock()
 	counters.supplierContractsAssociatedSuccess++
 	mutexCounters.Unlock()

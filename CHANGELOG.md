@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 3.0.2 (June 20th, 2022)
+
+Features:
+
+- Added '''InPolicy''' key per Asset type. The options are ''yes'' and `__clear__` and anything else (including omission). "yes" will ensure the asset will be set In Policy (used on Create, Update and Both), `__clear__` is only used if the determined action is "Update" - please note that the timeline will be irrecoverably removed.
+- Date Conversion template filters added: "date_conversion" and "date_conversion_clear". The latter will CLEAR the field if the transformation doesn't work. to be used: {{ .FieldName | date_conversion "02/01/2006 15:04:05" }} - provide the input format based on the following reference time of "Jan 1st 2006 4 minutes and 5 seconds past 3pm." - the example shown will convert the regular UK/European date time format to the format useable in the Hornbill datetime field. Please note that IF your formatting is already in the Hornbill date time format ("2006-01-02 15:04:05"), you don't need to convert anything.
+
 ## 3.0.1 (March 19th, 2022)
 
 Fixed:
