@@ -130,7 +130,6 @@ type dbConfStruct struct {
 	Query          string `json:"Query"`
 }
 type googleConfStruct struct {
-	KeysafeID   int    `json:"KeysafeID"`
 	Customer    string `json:"Customer"`
 	OrgUnitPath string `json:"OrgUnitPath"`
 	Query       string `json:"Query"`

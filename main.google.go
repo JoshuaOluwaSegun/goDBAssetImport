@@ -62,7 +62,7 @@ func getDevicesPage(gEspXmlmc *apiLib.XmlmcInstStruct, pageToken string) (usersR
 	gEspXmlmc.SetParam("requestPayload", string(strPayload))
 	gEspXmlmc.OpenElement("credential")
 	gEspXmlmc.SetParam("id", "googleworkspace")
-	gEspXmlmc.SetParam("keyId", strconv.Itoa(importConf.SourceConfig.Google.KeysafeID))
+	gEspXmlmc.SetParam("keyId", strconv.Itoa(importConf.KeysafeKeyID))
 	gEspXmlmc.CloseElement("credential")
 
 	requestPayloadXML := gEspXmlmc.GetParam()
