@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.1.0 (Juky 3rd, 2022)
+
+Features:
+
+- Added support to import Chrome OS devices from Google Workspace Enterprise
+
 ## 3.0.2 (June 20th, 2022)
 
 Features:

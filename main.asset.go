@@ -165,7 +165,6 @@ func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 	return
 }
 
-
 // addInPolicy --
 func addInPolicy(assetId string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes.Buffer) bool {
 	boolReturn := false
@@ -304,7 +303,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 				softwareRecordsHash string
 			)
 
-			if !configCSV && !configNexthink && !configLDAP {
+			if !configCSV && !configNexthink && !configLDAP && !configGoogle {
 				//One DB connection per worker
 				db, err = makeDBConnection()
 				if err != nil {
@@ -454,10 +453,9 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 							addInPolicy(assetIDInstance, espXmlmc, &buffer)
 						}
 					} else if assetType.InPolicyField == "__clear__" {
-						inPolicyId, ok := assetMap["h_pk_confiteminpolicyid"];
+						inPolicyId, ok := assetMap["h_pk_confiteminpolicyid"]
 						if ok {
-							var strIPID string
-							strIPID = fmt.Sprintf("%v", inPolicyId)
+							strIPID := fmt.Sprintf("%v", inPolicyId)
 							if strIPID != "" && strIPID != "0" {
 								removeInPolicy(strIPID, espXmlmc, &buffer)
 							}
@@ -474,7 +472,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 					if strings.ToLower(assetType.InPolicyField) == "yes" {
 						addInPolicy(assetIDInstance, espXmlmc, &buffer)
 					}
-					
+
 				} else {
 					buffer.WriteString(loggerGen(1, "Asset match not found, but OperationType not set to Both or Create"))
 				}

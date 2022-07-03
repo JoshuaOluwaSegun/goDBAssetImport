@@ -90,8 +90,9 @@ func main() {
 	configCSV = (strings.ToLower(importConf.SourceConfig.Source) == "csv")
 	configNexthink = (strings.ToLower(importConf.SourceConfig.Source) == "nexthink")
 	configLDAP = (strings.EqualFold(importConf.SourceConfig.Source, "ldap"))
+	configGoogle = (strings.EqualFold(importConf.SourceConfig.Source, "google"))
 
-	if !configCSV && !configNexthink && !configLDAP {
+	if !configCSV && !configNexthink && !configLDAP && !configGoogle {
 		//Build DB connection string
 		connString = buildConnectionString()
 		if connString == "" {
@@ -124,7 +125,7 @@ func main() {
 			v.TypeID = 0
 			v.Class = strings.Split(v.AssetType, ":")[1]
 		}
-		
+
 		//-- Query Data Source
 		boolSQLAssets := false
 		var arrAssets map[string]map[string]interface{}
@@ -142,6 +143,14 @@ func main() {
 		} else if configLDAP {
 			//-- Query LDAP
 			arrAssets, boolSQLAssets = queryLDAP(v)
+		} else if configGoogle {
+			//-- Query Nexthink
+			arrAssets, err = getAssetsFromGoogle(v)
+			if err != nil {
+				logger(4, err.Error(), true, true)
+			} else {
+				boolSQLAssets = true
+			}
 		} else {
 			//-- Query database
 			boolSQLAssets, arrAssets = queryAssets(StrSQLAppend, v)

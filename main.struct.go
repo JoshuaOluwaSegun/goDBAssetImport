@@ -10,7 +10,7 @@ import (
 
 //----- Constants -----
 const (
-	version           = "3.0.2"
+	version           = "3.1.0"
 	repo              = "hornbill/goDBAssetImport"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
@@ -42,6 +42,7 @@ var (
 	configCSV      bool
 	configLDAP     bool
 	configNexthink bool
+	configGoogle   bool
 
 	Sites                  []siteListStruct
 	Groups                 []groupListStruct
@@ -110,10 +111,11 @@ type importConfStruct struct {
 	HornbillUserIDColumn     string             `json:"HornbillUserIDColumn"`
 	LogSizeBytes             int64              `json:"LogSizeBytes"`
 	SourceConfig             struct {
-		CSV      csvConfStruct  `json:"CSV"`
-		Database dbConfStruct   `json:"Database"`
-		LDAP     ldapConfStruct `json:"LDAP"`
-		Source   string         `json:"Source"`
+		CSV      csvConfStruct    `json:"CSV"`
+		Database dbConfStruct     `json:"Database"`
+		LDAP     ldapConfStruct   `json:"LDAP"`
+		Google   googleConfStruct `json:"Google"`
+		Source   string           `json:"Source"`
 	} `json:"SourceConfig"`
 }
 type csvConfStruct struct {
@@ -126,6 +128,12 @@ type dbConfStruct struct {
 	Authentication string `json:"Authentication"`
 	Encrypt        bool   `json:"Encrypt"`
 	Query          string `json:"Query"`
+}
+type googleConfStruct struct {
+	KeysafeID   int    `json:"KeysafeID"`
+	Customer    string `json:"Customer"`
+	OrgUnitPath string `json:"OrgUnitPath"`
+	Query       string `json:"Query"`
 }
 type ldapConfStruct struct {
 	Query struct {
@@ -341,4 +349,37 @@ type xmlmcCountResponse struct {
 		} `json:"rowData"`
 	} `json:"params"`
 	State stateJSONStruct `json:"state"`
+}
+
+type xmlmcIBridgeResponse struct {
+	MethodResult           string         `xml:"status,attr"`
+	IBridgeResponsePayload string         `xml:"params>responsePayload"`
+	IBridgeResponseError   string         `xml:"params>error"`
+	State                  stateXMLStruct `xml:"state"`
+}
+
+type stateXMLStruct struct {
+	Code  string `xml:"code"`
+	Error string `xml:"error"`
+}
+
+type googleResponseStruct struct {
+	Params struct {
+		Data struct {
+			ChromeOSDevices []map[string]interface{} `json:"chromeosdevices"`
+			NextPageToken   string                   `json:"nextPageToken"`
+		} `json:"data"`
+		Error   string `json:"error"`
+		Status  int    `json:"status"`
+		Success bool   `json:"success"`
+		URL     string `json:"url"`
+	} `json:"params"`
+}
+
+type googlePayloadStruct struct {
+	Customer    string `json:"customerId"`
+	MaxResults  int    `json:"maxResults"`
+	PageToken   string `json:"pageToken"`
+	Query       string `json:"query"`
+	OrgUnitPath string `json:"orgUnitPath"`
 }

@@ -1,0 +1,46 @@
+{
+    "APIKey": "yourapikey",
+    "InstanceId": "yourinstanceid",
+    "LogSizeBytes": 1000000,
+    "HornbillUserIDColumn": "h_user_id",
+    "SourceConfig": {
+        "Source": "google",
+        "Google": {
+            "KeysafeID": 0,
+            "Customer": "my_customer",
+            "Query": "",
+            "OrgUnitPath": "/"
+        }
+    },
+    "AssetTypes": [{
+        "AssetType": "Laptop",
+        "OperationType": "Both",
+        "PreserveShared": false,
+        "Query": "",
+        "AssetIdentifier": {
+            "SourceColumn": "annotatedAssetId",
+            "Entity": "Asset",
+            "EntityColumn": "h_name"
+        }
+    }],
+    "AssetGenericFieldMapping": {
+        "h_name": "{{.annotatedAssetId}}",
+        "h_asset_tag": "{{.annotatedAssetId}}",
+        "h_description": "From Google: {{.annotatedAssetId}} ({{.model}})",
+        "h_used_by": "{{ (index .recentUsers 0).email }}"
+    },
+    "AssetTypeFieldMapping": {
+        "h_name": "{{.annotatedAssetId}}",
+        "h_mac_address": "{{.macAddress}}",
+        "h_net_ip_address": "{{ (index .lastKnownNetwork 0).ipAddress }}",
+        "h_net_computer_name": "{{.annotatedAssetId}}",
+        "h_model": "{{.model}}",
+        "h_description": "From Google: {{.annotatedAssetId}} ({{.model}})",
+        "h_memory_info": "{{.systemRamTotal}}",
+        "h_os_description": "{{.firmwareVersion}}",
+        "h_os_version": "{{.osVersion}}",
+        "h_serial_number": "{{.serialNumber}}",
+        "h_cpu_info": "{{ (index .cpuInfo 0).model }}",
+        "h_cpu_clock_speed": "{{ (index .cpuInfo 0).maxClockSpeedKhz }}"
+    }
+}

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"unicode"
 
 	"github.com/fatih/color"
 	apiLib "github.com/hornbill/goApiLib"
@@ -335,4 +336,11 @@ func getApplications() {
 	for i := 0; i < len(apiResponse.Params.Applications); i++ {
 		HInstalledApplications[apiResponse.Params.Applications[i].Name] = true
 	}
+}
+
+func printOnly(r rune) rune {
+	if unicode.IsPrint(r) {
+		return r
+	}
+	return -1
 }
