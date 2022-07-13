@@ -1,6 +1,12 @@
 # CHANGELOG
 
-## 3.1.0 (Juky 3rd, 2022)
+## 3.1.1 (July 13th, 2022)
+
+Features:
+
+- Added h_attrib_8 as one of the options for the HornbillUserIDColumn.
+
+## 3.1.0 (July 3rd, 2022)
 
 Features:
 

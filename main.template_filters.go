@@ -82,7 +82,7 @@ func setTemplateFilters() {
 		"date_conversion": func(layoutFormat string, dateString string) string {
 			result := ""
 			dt, err := time.Parse(layoutFormat, dateString)
-				if err == nil {
+			if err == nil {
 				result = dt.Format("2006-01-02 15:04:05")
 			}
 			return result
@@ -90,7 +90,7 @@ func setTemplateFilters() {
 		"date_conversion_clear": func(layoutFormat string, dateString string) string {
 			result := "__clear__"
 			dt, err := time.Parse(layoutFormat, dateString)
-				if err == nil {
+			if err == nil {
 				result = dt.Format("2006-01-02 15:04:05")
 			}
 			return result

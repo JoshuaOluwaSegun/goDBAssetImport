@@ -10,7 +10,7 @@ import (
 
 //----- Constants -----
 const (
-	version           = "3.1.0"
+	version           = "3.1.1"
 	repo              = "hornbill/goDBAssetImport"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
@@ -288,6 +288,7 @@ type userAccountStruct struct {
 	HLastName   string `json:"h_last_name"`
 	HEmail      string `json:"h_email"`
 	HAttrib1    string `json:"h_attrib_1"`
+	HAttrib8    string `json:"h_attrib_8"`
 }
 
 //Asset Type Structs

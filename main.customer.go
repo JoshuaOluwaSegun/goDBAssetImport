@@ -77,6 +77,10 @@ func getUserAccountList(count uint64) {
 				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HAttrib1
 				}
+			case "h_attrib_8":
+				{
+					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HAttrib8
+				}
 			case "h_user_id":
 				{
 					newCustomerForCache.CustomerID = JSONResp.Params.RowData.Row[index].HUserID

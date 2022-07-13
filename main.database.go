@@ -64,9 +64,9 @@ func buildConnectionString() string {
 	case "odbc":
 		connectString = "DSN=" + key.Database + ";UID=" + key.Username + ";PWD=" + key.Password
 	}
-	
+
 	BaseSQLQuery = importConf.SourceConfig.Database.Query
-	
+
 	return connectString
 }
 
