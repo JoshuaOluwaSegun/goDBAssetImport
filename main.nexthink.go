@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -49,11 +48,11 @@ func getAssetsFromNexthink(assetType assetTypesStruct) (map[string]map[string]in
 		errorString := fmt.Sprintf("Invalid HTTP Response: %d", resp.StatusCode)
 		err = errors.New(errorString)
 		//Drain the body so we can reuse the connection
-		io.Copy(ioutil.Discard, resp.Body)
+		io.Copy(io.Discard, resp.Body)
 		return returnMap, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return returnMap, errors.New("cant read the body of the response: " + err.Error())
 	}
@@ -137,11 +136,11 @@ func queryNexthinkSoftwareInventoryRecords(assetID string, assetType assetTypesS
 		errorString := fmt.Sprintf("Invalid HTTP Response: %d", resp.StatusCode)
 		err = errors.New(errorString)
 		//Drain the body so we can reuse the connection
-		io.Copy(ioutil.Discard, resp.Body)
+		io.Copy(io.Discard, resp.Body)
 		return returnMap, hash, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		err = errors.New("cant read the body of the response: " + err.Error())
 		return returnMap, hash, err

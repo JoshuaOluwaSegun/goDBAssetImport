@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
+	"github.com/cheggaaa/pb"
 	apiLib "github.com/hornbill/goApiLib"
-	"github.com/hornbill/pb"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -134,7 +135,7 @@ func getAssetRecords(assetCount uint64, assetType assetTypesStruct, espXmlmc *ap
 	return recordMap, err
 }
 
-//getAssetClass -- Get Asset Class & Type ID from Asset Type Name
+// getAssetClass -- Get Asset Class & Type ID from Asset Type Name
 func getAssetClass(confAssetType string) (assetClass string, assetType int) {
 	espXmlmc := apiLib.NewXmlmcInstance(importConf.InstanceID)
 	espXmlmc.SetAPIKey(importConf.APIKey)
@@ -253,9 +254,9 @@ func removeInPolicy(inPolicyId string, espXmlmc *apiLib.XmlmcInstStruct, buffer 
 	return boolReturn
 }
 
-//processAssets -- Processes Assets from Asset Map
-//--If asset already exists on the instance, update
-//--If asset doesn't exist, create
+// processAssets -- Processes Assets from Asset Map
+// --If asset already exists on the instance, update
+// --If asset doesn't exist, create
 func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[string]map[string]interface{}, assetType assetTypesStruct) {
 	logger(3, "Processing "+strconv.Itoa(len(arrAssets))+" of "+assetType.AssetType+" Type Assets...", true, true)
 	bar := pb.StartNew(len(arrAssets))
@@ -278,10 +279,24 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 			dbRecordHash    string
 			assetForHash    []map[string]interface{}
 			assetMap        = assetRecord
+			assetID         string
 		)
 
-		//Get the asset ID for the current record
-		assetID := iToS(assetMap[assetIDIdent])
+		matched := regexTemplate.MatchString(assetIDIdent)
+		if matched {
+			//Get the asset ID for the current record - using Go templates
+			t := template.New(assetIDIdent).Funcs(TemplateFilters)
+			tmpl, _ := t.Parse(assetIDIdent)
+			buf := bytes.NewBufferString("")
+			tmpl.Execute(buf, assetMap)
+
+			if buf != nil {
+				assetID = buf.String()
+			}
+		} else {
+			//Get the asset ID for the current record - Not templated
+			assetID = iToS(assetMap[assetIDIdent])
+		}
 
 		dbRecordHash = Hash(append(assetForHash, assetRecord))
 
@@ -303,7 +318,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 				softwareRecordsHash string
 			)
 
-			if !configCSV && !configNexthink && !configLDAP && !configGoogle {
+			if configDB {
 				//One DB connection per worker
 				db, err = makeDBConnection()
 				if err != nil {
@@ -758,7 +773,7 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 }
 
 // updateAsset -- Updates Asset record from the passed through map data and asset ID
-//func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetID, strNewAssetID, usedBy string, espXmlmc *apiLib.XmlmcInstStruct, db *sqlx.DB, buffer *bytes.Buffer) bool {
+// func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetID, strNewAssetID, usedBy string, espXmlmc *apiLib.XmlmcInstStruct, db *sqlx.DB, buffer *bytes.Buffer) bool {
 func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetID, strNewAssetID, usedBy string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes.Buffer) bool {
 
 	var (

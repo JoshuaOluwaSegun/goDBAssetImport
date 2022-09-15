@@ -2,22 +2,23 @@ package main
 
 import (
 	"encoding/xml"
+	"regexp"
 	"sync"
 	"time"
 
 	apiLib "github.com/hornbill/goApiLib"
 )
 
-//----- Constants -----
+// ----- Constants -----
 const (
-	version           = "3.1.2"
+	version           = "3.2.0"
 	repo              = "hornbill/goDBAssetImport"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
 	maxGoRoutines     = 10
 )
 
-//----- Variables -----
+// ----- Variables -----
 var (
 	assets         = make(map[string]string)
 	AssetClass     string
@@ -39,10 +40,12 @@ var (
 	configMaxRoutines  int
 	configVersion      bool
 
+	configCertero  bool
 	configCSV      bool
+	configDB       bool
+	configGoogle   bool
 	configLDAP     bool
 	configNexthink bool
-	configGoogle   bool
 
 	Sites                  []siteListStruct
 	Groups                 []groupListStruct
@@ -58,7 +61,8 @@ var (
 	logFilePart = 0
 	pageSize    int
 
-	hornbillImport *apiLib.XmlmcInstStruct
+	hornbillImport   *apiLib.XmlmcInstStruct
+	regexTemplate, _ = regexp.Compile("{{.{1,}}}")
 )
 
 type counterTypeStruct struct {
@@ -111,12 +115,17 @@ type importConfStruct struct {
 	HornbillUserIDColumn     string             `json:"HornbillUserIDColumn"`
 	LogSizeBytes             int64              `json:"LogSizeBytes"`
 	SourceConfig             struct {
-		CSV      csvConfStruct    `json:"CSV"`
-		Database dbConfStruct     `json:"Database"`
-		LDAP     ldapConfStruct   `json:"LDAP"`
-		Google   googleConfStruct `json:"Google"`
-		Source   string           `json:"Source"`
+		CSV      csvConfStruct     `json:"CSV"`
+		Database dbConfStruct      `json:"Database"`
+		LDAP     ldapConfStruct    `json:"LDAP"`
+		Google   googleConfStruct  `json:"Google"`
+		Certero  certeroConfStruct `json:"Certero"`
+		Source   string            `json:"Source"`
 	} `json:"SourceConfig"`
+}
+type certeroConfStruct struct {
+	Expand   string `json:"Expand"`
+	PageSize int    `json:"PageSize"`
 }
 type csvConfStruct struct {
 	CarriageReturnRemoval bool   `json:"CarriageReturnRemoval"`
@@ -178,10 +187,14 @@ type softwareInventoryStruct struct {
 	AppIDColumn   string
 	Query         string
 	Mapping       map[string]interface{}
+	ParentObject  string
 }
 type keyDataStruct struct {
 	APIEndpoint string `json:"api_endpoint"`
+	APIKeyName  string `json:"apikeyname"`
+	APIKey      string `json:"apikey"`
 	Database    string `json:"database"`
+	Endpoint    string `json:"endpoint"`
 	Host        string `json:"host"`
 	Password    string `json:"password"`
 	Port        uint16 `json:"port"`
@@ -251,7 +264,7 @@ type softwareRecordDetailsStruct struct {
 	HAppID     string `xml:"h_app_id"`
 }
 
-//Sites Structs
+// Sites Structs
 type xmlmcSiteResponse struct {
 	Params struct {
 		Sites string `json:"sites"`
@@ -270,7 +283,7 @@ type siteDetailsStruct struct {
 	Name string `json:"h_site_name"`
 }
 
-//User Structs
+// User Structs
 type xmlmcUserListResponse struct {
 	Params struct {
 		RowData struct {
@@ -291,7 +304,7 @@ type userAccountStruct struct {
 	HAttrib8    string `json:"h_attrib8"`
 }
 
-//Asset Type Structs
+// Asset Type Structs
 type xmlmcTypeListResponse struct {
 	MethodResult string               `xml:"status,attr"`
 	Params       paramsTypeListStruct `xml:"params"`
@@ -306,7 +319,7 @@ type assetTypeObjectStruct struct {
 	TypeID    int    `xml:"h_pk_type_id"`
 }
 
-//Application list structs
+// Application list structs
 type xmlmcApplicationResponse struct {
 	Status bool `json:"@status"`
 	Params struct {
@@ -317,7 +330,7 @@ type xmlmcApplicationResponse struct {
 	State stateJSONStruct `json:"state"`
 }
 
-//XMLMC Generic Structs
+// XMLMC Generic Structs
 type xmlmcResponse struct {
 	MethodResult string       `xml:"status,attr"`
 	Params       paramsStruct `xml:"params"`

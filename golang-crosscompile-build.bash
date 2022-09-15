@@ -40,7 +40,7 @@ do
     destination="builds/$goos/$goarch/$output"
 
     printf "Go Build\n"
-    GOOS=$goos GOARCH=$goarch go build -trimpath -o $destination
+    CGO_ENABLED=1 GOOS=$goos GOARCH=$goarch go build -trimpath -o $destination -buildvcs=false
     # $target
 
     printf "Copy Source Files\n"

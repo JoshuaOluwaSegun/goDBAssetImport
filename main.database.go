@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"text/template"
 
 	//SQL Package
 	"github.com/jmoiron/sqlx"
 )
 
-//buildConnectionString -- Build the connection string for the SQL driver
+// buildConnectionString -- Build the connection string for the SQL driver
 func buildConnectionString() string {
 	if key.Database == "" ||
 		importConf.SourceConfig.Database.Authentication == "SQL" && (key.Username == "" || key.Password == "") {
@@ -86,8 +87,8 @@ func makeDBConnection() (db *sqlx.DB, err error) {
 	return
 }
 
-//queryAssets -- Query Asset Database for assets of current type
-//-- Builds map of assets, returns true if successful
+// queryAssets -- Query Asset Database for assets of current type
+// -- Builds map of assets, returns true if successful
 func queryAssets(sqlAppend string, assetType assetTypesStruct) (bool, map[string]map[string]interface{}) {
 	//Initialise Asset Map
 	arrAssetMaps := make(map[string]map[string]interface{})
@@ -127,7 +128,22 @@ func queryAssets(sqlAppend string, assetType assetTypesStruct) (bool, map[string
 					results[k] = iToS(val)
 				}
 			}
-			arrAssetMaps[fmt.Sprintf("%s", results[assetType.AssetIdentifier.SourceColumn])] = results
+			assetIDIdent := fmt.Sprintf("%v", assetType.AssetIdentifier.SourceColumn)
+			matched := regexTemplate.MatchString(assetIDIdent)
+			if matched {
+				//Get the asset ID for the current record - using Go templates
+				t := template.New(assetIDIdent).Funcs(TemplateFilters)
+				tmpl, _ := t.Parse(assetIDIdent)
+				buf := bytes.NewBufferString("")
+				tmpl.Execute(buf, results)
+
+				if buf != nil {
+					assetID := buf.String()
+					arrAssetMaps[assetID] = results
+				}
+			} else {
+				arrAssetMaps[fmt.Sprintf("%s", results[assetType.AssetIdentifier.SourceColumn])] = results
+			}
 		}
 	}
 	logger(3, "[DATABASE] "+strconv.Itoa(intAssetSuccess)+" of "+strconv.Itoa(intAssetCount)+" returned assets successfully retrieved ready for processing.", true, true)
@@ -180,7 +196,24 @@ func querySoftwareInventoryRecords(assetID string, assetTypeDetails assetTypesSt
 
 	//Now process return map
 	for _, v := range recordMap {
-		returnMap[fmt.Sprintf("%s", v[assetTypeDetails.SoftwareInventory.AppIDColumn])] = v
+		//Get the software ID for the current record
+		softwareIDIdent := fmt.Sprintf("%v", assetTypeDetails.SoftwareInventory.AppIDColumn)
+		matched := regexTemplate.MatchString(softwareIDIdent)
+		if matched {
+			t := template.New(softwareIDIdent).Funcs(TemplateFilters)
+			tmpl, _ := t.Parse(softwareIDIdent)
+			buf := bytes.NewBufferString("")
+			tmpl.Execute(buf, v)
+			softwareID := ""
+			if buf != nil {
+				softwareID = buf.String()
+				returnMap[softwareID] = v
+			} else {
+				err = errors.New("[DATABASE] Unable to read software inventory record from source DB, software ID not found in record")
+			}
+		} else {
+			returnMap[fmt.Sprintf("%s", v[softwareIDIdent])] = v
+		}
 	}
 	buffer.WriteString(loggerGen(3, "[DATABASE] "+strconv.Itoa(len(recordMap))+" of "+strconv.Itoa(intAssetCount)+" returned software inventory records successfully retrieved"))
 	return returnMap, hash, err

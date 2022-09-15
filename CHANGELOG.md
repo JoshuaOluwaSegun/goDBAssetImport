@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 3.2.0 (September 15th, 2022) 
+
+Features:
+
+- Added support to import asset records from Certero
+- Added Go template support to the following fields, but also kept backwards compatibility with config files between v3.0.0 & 3.1.2 inclusive:
+  - AssetTypes > AssetIdentifier > SourceColumn
+  - AssetTypes > SoftwareInventory > AssetIDColumn
+  - AssetTypes > SoftwareInventory > AppIDColumn
+
 ## 3.1.2 (July 22nd, 2022)
 
 Fixes:

@@ -6,22 +6,88 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"text/template"
+	"time"
 
 	apiLib "github.com/hornbill/goApiLib"
 	"github.com/jmoiron/sqlx"
 )
 
-func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct, db *sqlx.DB, buffer *bytes.Buffer) (softwareRecords map[string]map[string]interface{}, softwareRecordsHash string, err error) {
+func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct, db *sqlx.DB, buffer *bytes.Buffer) (map[string]map[string]interface{}, string, error) {
+	var (
+		softwareRecords     = make(map[string]map[string]interface{})
+		softwareRecordsHash string
+		err                 error
+	)
 	if configCSV {
-		return
+		return softwareRecords, softwareRecordsHash, err
 	}
 
-	if assetType.SoftwareInventory.Query != "" && assetType.SoftwareInventory.AssetIDColumn != "" {
-		if val, ok := u[assetType.SoftwareInventory.AssetIDColumn]; ok {
-			swAssetID := iToS(val)
-			debugLog(buffer, "Asset ID found in source data record:", swAssetID)
+	if configCertero {
+		var recordMap []map[string]interface{}
+		if u[assetType.SoftwareInventory.ParentObject] != nil {
+			recordMap = u[assetType.SoftwareInventory.ParentObject].([]map[string]interface{})
+			recordsHash := Hash(recordMap)
+			softwareRecordsHash = fmt.Sprintf("%v", recordsHash)
+
+			//Now process return map
+			for _, v := range recordMap {
+				//Get the software ID for the current record
+				softwareIDIdent := fmt.Sprintf("%v", assetType.SoftwareInventory.AppIDColumn)
+				matched := regexTemplate.MatchString(softwareIDIdent)
+				if matched {
+					t := template.New(softwareIDIdent).Funcs(TemplateFilters)
+					tmpl, _ := t.Parse(softwareIDIdent)
+					buf := bytes.NewBufferString("")
+					tmpl.Execute(buf, v)
+					softwareID := ""
+					if buf != nil {
+						// Convert install date
+						if v["InstallDate"] != nil {
+							layout := "2006-01-02T15:04:05"
+							installDate := v["InstallDate"].(string)[0:19]
+							t, err := time.Parse(layout, installDate)
+
+							if err == nil {
+								v["InstallDate"] = t.Format("2006-01-02 15:04:05")
+							} else {
+								buffer.WriteString(loggerGen(5, "Error parsing InstallDate:"+err.Error()))
+							}
+						}
+						softwareID = buf.String()
+						softwareRecords[softwareID] = v
+					} else {
+						buffer.WriteString(loggerGen(4, "unable to read software inventory record from Certero, software ID not found in record"))
+					}
+				} else {
+					err = errors.New("the AppIDColumn is not properly formatted, importing from Certero requires this to be a Go template")
+					return softwareRecords, softwareRecordsHash, err
+				}
+			}
+		}
+	} else if assetType.SoftwareInventory.Query != "" && assetType.SoftwareInventory.AssetIDColumn != "" {
+		swAssetID := ""
+		assetIDIdent := fmt.Sprintf("%v", assetType.SoftwareInventory.AssetIDColumn)
+		matched := regexTemplate.MatchString(assetIDIdent)
+		if matched {
+			//Get the asset ID for the current record - using Go templates
+			t := template.New(assetIDIdent).Funcs(TemplateFilters)
+			tmpl, _ := t.Parse(assetIDIdent)
+			buf := bytes.NewBufferString("")
+			tmpl.Execute(buf, u)
+
+			if buf != nil {
+				swAssetID = buf.String()
+			}
+		} else if configNexthink {
+			swAssetID = iToS(u["id"])
+		} else {
+			if val, ok := u[assetType.SoftwareInventory.AssetIDColumn]; ok {
+				swAssetID = iToS(val)
+			}
+		}
+		if swAssetID != "" {
 			if configNexthink {
-				swAssetID = iToS(u["id"])
 				softwareRecords, softwareRecordsHash, err = queryNexthinkSoftwareInventoryRecords(swAssetID, assetType, buffer)
 				if err != nil {
 					err = errors.New("Unable to read software inventory records from Nexthink:" + err.Error())
@@ -36,7 +102,7 @@ func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, es
 			err = errors.New("unable to read software inventory records from source db, asset ID not found in db record")
 		}
 	}
-	return
+	return softwareRecords, softwareRecordsHash, err
 }
 
 func buildSoftwareInventory(softwareRecords map[string]map[string]interface{}, assetType assetTypesStruct, hbAssetID string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes.Buffer) {

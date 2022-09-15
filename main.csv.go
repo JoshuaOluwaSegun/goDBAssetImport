@@ -20,7 +20,7 @@ func (r *customReader) Read(b []byte) (n int, err error) {
 	return n, nil
 }
 
-//func getAssetsFromCSV(csvFile string, assetType assetTypesStruct) (bool, []map[string]string) {
+// func getAssetsFromCSV(csvFile string, assetType assetTypesStruct) (bool, []map[string]string) {
 func getAssetsFromCSV(assetType assetTypesStruct) (bool, map[string]map[string]interface{}) {
 	//Initialise Asset Map
 	arrAssetMaps := make(map[string]map[string]interface{})

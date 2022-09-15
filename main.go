@@ -21,7 +21,7 @@ import (
 	_ "github.com/hornbill/mysql320"
 )
 
-//----- Main Function -----
+// ----- Main Function -----
 func main() {
 	//-- Start Time for Duration
 	startTime = time.Now()
@@ -91,8 +91,10 @@ func main() {
 	configNexthink = (strings.ToLower(importConf.SourceConfig.Source) == "nexthink")
 	configLDAP = (strings.EqualFold(importConf.SourceConfig.Source, "ldap"))
 	configGoogle = (strings.EqualFold(importConf.SourceConfig.Source, "google"))
+	configCertero = (strings.EqualFold(importConf.SourceConfig.Source, "certero"))
+	configDB = (!configCSV && !configNexthink && !configLDAP && !configGoogle && !configCertero)
 
-	if !configCSV && !configNexthink && !configLDAP && !configGoogle {
+	if configDB {
 		//Build DB connection string
 		connString = buildConnectionString()
 		if connString == "" {
@@ -144,8 +146,16 @@ func main() {
 			//-- Query LDAP
 			arrAssets, boolSQLAssets = queryLDAP(v)
 		} else if configGoogle {
-			//-- Query Nexthink
+			//-- Query Google
 			arrAssets, err = getAssetsFromGoogle(v)
+			if err != nil {
+				logger(4, err.Error(), true, true)
+			} else {
+				boolSQLAssets = true
+			}
+		} else if configCertero {
+			//-- Query Certero
+			arrAssets, err = getAssetsFromCertero(v)
 			if err != nil {
 				logger(4, err.Error(), true, true)
 			} else {
@@ -204,7 +214,7 @@ func main() {
 	logger(3, "---- XMLMC Database Asset Import Complete ---- ", true, true)
 }
 
-//loadConfig -- Function to Load Configruation File
+// loadConfig -- Function to Load Configruation File
 func loadConfig() importConfStruct {
 	//-- Check Config File File Exists
 	cwd, _ := os.Getwd()
