@@ -11,7 +11,7 @@ import (
 
 // ----- Constants -----
 const (
-	version           = "3.2.0"
+	version           = "3.3.0"
 	repo              = "hornbill/goDBAssetImport"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
@@ -23,16 +23,21 @@ var (
 	assets         = make(map[string]string)
 	AssetClass     string
 	AssetTypeID    int
-	BaseSQLQuery   string
-	connString     string
 	counters       counterTypeStruct
-	importConf     importConfStruct
-	key            keyDataStruct
+	logFilePart    = 0
 	maxLogFileSize int64
+	pageSize       int
 	startTime      time.Time
 	StrAssetType   string
-	StrSQLAppend   string
 
+	// DB variables
+	BaseSQLQuery string
+	connString   string
+	importConf   importConfStruct
+	key          keyDataStruct
+	StrSQLAppend string
+
+	// CLI argument variables
 	configDebug        bool
 	configDryRun       bool
 	configFileName     string
@@ -40,28 +45,32 @@ var (
 	configMaxRoutines  int
 	configVersion      bool
 
-	configCertero  bool
-	configCSV      bool
-	configDB       bool
-	configGoogle   bool
-	configLDAP     bool
-	configNexthink bool
+	// Import config flags
+	configCertero      bool
+	configCSV          bool
+	configDB           bool
+	configGoogle       bool
+	configLDAP         bool
+	configNexthink     bool
+	configWorkspaceOne bool
 
+	// Global caches
 	Sites                  []siteListStruct
 	Groups                 []groupListStruct
 	Customers              []customerListStruct
 	HInstalledApplications = make(map[string]bool)
 
+	// Worker stuff
 	mutexAssets   = &sync.Mutex{}
 	mutexBar      = &sync.Mutex{}
 	mutexBuffer   = &sync.Mutex{}
 	mutexCounters = &sync.Mutex{}
 	worker        sync.WaitGroup
 
-	logFilePart = 0
-	pageSize    int
+	// Shared Hornbill session for caching etc
+	hornbillImport *apiLib.XmlmcInstStruct
 
-	hornbillImport   *apiLib.XmlmcInstStruct
+	// Regex to check if a field contain Go templates
 	regexTemplate, _ = regexp.Compile("{{.{1,}}}")
 )
 
@@ -87,7 +96,7 @@ type counterTypeStruct struct {
 	supplierContractsAssociatedSkipped uint16
 }
 
-// Cache Structs
+// -- Cache Structs
 type siteListStruct struct {
 	SiteName string
 	SiteID   int
@@ -104,7 +113,7 @@ type customerListStruct struct {
 	CustomerHandle string
 }
 
-// Config Structs
+// -- Config Structs
 type importConfStruct struct {
 	APIKey                   string `json:"APIKey"`
 	InstanceID               string `json:"InstanceId"`
@@ -174,6 +183,16 @@ type assetTypesStruct struct {
 	SoftwareInventory        softwareInventoryStruct `json:"SoftwareInventory"`
 	Class                    string                  `json:"Class"`
 	TypeID                   int                     `json:"TypeID"`
+	Filters                  filtersStruct           `json:"Filters"`
+}
+type filtersStruct struct {
+	User                    string `json:"User"`
+	Model_Identifier        string `json:"ModelIdentifier"`
+	Device_Type             string `json:"DevicePlatformType"`
+	Ownership               string `json:"Ownership"`
+	Organization_Group_UUID string `json:"OrganizationGroupUUID"`
+	Compliance_Status       string `json:"ComplianceStatus"`
+	Seen_Since              string `json:"SeenSince"`
 }
 type assetIdentifierStruct struct {
 	Entity               string `json:"Entity"`
@@ -190,157 +209,34 @@ type softwareInventoryStruct struct {
 	ParentObject  string
 }
 type keyDataStruct struct {
-	APIEndpoint string `json:"api_endpoint"`
-	APIKeyName  string `json:"apikeyname"`
-	APIKey      string `json:"apikey"`
-	Database    string `json:"database"`
-	Endpoint    string `json:"endpoint"`
-	Host        string `json:"host"`
-	Password    string `json:"password"`
-	Port        uint16 `json:"port"`
-	Server      string `json:"server"`
-	Username    string `json:"username"`
+	AccessToken  string
+	APIEndpoint  string `json:"api_endpoint"`
+	APIKeyName   string `json:"apikeyname"`
+	APIKey       string `json:"apikey"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	Database     string `json:"database"`
+	Domain       string `json:"domain"`
+	Endpoint     string `json:"endpoint"`
+	Host         string `json:"host"`
+	Password     string `json:"password"`
+	Port         uint16 `json:"port"`
+	Region       string `json:"region"`
+	Server       string `json:"server"`
+	Username     string `json:"username"`
 }
 
-// XMLMC API Call Response Structs
-type xmlmcKeyResponse struct {
-	MethodResult string      `xml:"status,attr"`
-	State        stateStruct `xml:"state"`
-	Params       struct {
-		Data   string `json:"data"`
-		Schema string `json:"schema"`
-		Title  string `json:"title"`
-		Type   string `json:"type"`
-	} `json:"params"`
-}
-type xmlmcUpdateResponse struct {
-	MethodResult string      `xml:"status,attr"`
-	UpdatedCols  updatedCols `xml:"params>primaryEntityData>record"`
-	State        stateStruct `xml:"state"`
-}
-type updatedCols struct {
-	AssetPK string       `xml:"h_pk_asset_id"`
-	ColList []updatedCol `xml:",any"`
-}
-type updatedCol struct {
-	XMLName xml.Name `xml:""`
-	Amount  string   `xml:",chardata"`
-}
-
-type xmlmcGroupResponse struct {
-	Params struct {
-		Group []struct {
-			ID   string `json:"id"`
-			Type string `json:"type"`
-			Name string `json:"name"`
-		} `json:"group"`
-		MaxPages int `json:"maxPages"`
-	} `json:"params"`
-	State stateJSONStruct `json:"state"`
-}
-
-type xmlmcAssetRecordsResponse struct {
-	Params struct {
-		RowData struct {
-			Row []map[string]interface{} `json:"row"`
-		} `json:"rowData"`
-	} `json:"params"`
-	State stateJSONStruct `json:"state"`
-}
-
-type xmlmcSoftwareRecordsResponse struct {
-	Params struct {
-		RowData struct {
-			Row []softwareRecordDetailsStruct `xml:"row"`
-		} `xml:"rowData"`
-	} `xml:"params"`
-	State stateJSONStruct `xml:"state"`
-}
-type softwareRecordDetailsStruct struct {
-	Count      uint64 `xml:"count"`
-	HPKID      int    `xml:"h_pk_id"`
-	HFKAssetID int    `xml:"h_fk_asset_id"`
-	HAppName   string `xml:"h_app_name"`
-	HAppID     string `xml:"h_app_id"`
-}
-
-// Sites Structs
-type xmlmcSiteResponse struct {
-	Params struct {
-		Sites string `json:"sites"`
-		Count string `json:"count"`
-	} `json:"params"`
-	State stateJSONStruct `json:"state"`
-}
-type siteRowMultiple struct {
-	Row []siteDetailsStruct `json:"row"`
-}
-type siteRowSingle struct {
-	Row siteDetailsStruct `json:"row"`
-}
-type siteDetailsStruct struct {
-	ID   string `json:"h_id"`
-	Name string `json:"h_site_name"`
-}
-
-// User Structs
-type xmlmcUserListResponse struct {
-	Params struct {
-		RowData struct {
-			Row []userAccountStruct `json:"row"`
-		} `json:"rowData"`
-	} `json:"params"`
-	State stateJSONStruct `json:"state"`
-}
-type userAccountStruct struct {
-	HUserID     string `json:"h_user_id"`
-	HLoginID    string `json:"h_login_id"`
-	HEmployeeID string `json:"h_employee_id"`
-	HName       string `json:"h_name"`
-	HFirstName  string `json:"h_first_name"`
-	HLastName   string `json:"h_last_name"`
-	HEmail      string `json:"h_email"`
-	HAttrib1    string `json:"h_attrib1"`
-	HAttrib8    string `json:"h_attrib8"`
-}
-
-// Asset Type Structs
-type xmlmcTypeListResponse struct {
-	MethodResult string               `xml:"status,attr"`
-	Params       paramsTypeListStruct `xml:"params"`
-	State        stateStruct          `xml:"state"`
-}
-type paramsTypeListStruct struct {
-	Row assetTypeObjectStruct `xml:"rowData>row"`
-}
-type assetTypeObjectStruct struct {
-	Type      string `xml:"h_name"`
-	TypeClass string `xml:"h_class"`
-	TypeID    int    `xml:"h_pk_type_id"`
-}
-
-// Application list structs
-type xmlmcApplicationResponse struct {
-	Status bool `json:"@status"`
-	Params struct {
-		Applications []struct {
-			Name string `json:"name"`
-		} `json:"application"`
-	} `json:"params"`
-	State stateJSONStruct `json:"state"`
-}
-
-// XMLMC Generic Structs
+// -- XMLMC API Call Response Structs
 type xmlmcResponse struct {
-	MethodResult string       `xml:"status,attr"`
-	Params       paramsStruct `xml:"params"`
-	State        stateStruct  `xml:"state"`
+	MethodResult string         `xml:"status,attr"`
+	Params       paramsStruct   `xml:"params"`
+	State        stateStructXML `xml:"state"`
 }
-type stateStruct struct {
-	Code     string `xml:"code"`
-	ErrorRet string `xml:"error"`
+type stateStructXML struct {
+	Code  string `xml:"code"`
+	Error string `xml:"error"`
 }
-type stateJSONStruct struct {
+type stateStructJSON struct {
 	Code      string `json:"code"`
 	Service   string `json:"service"`
 	Operation string `json:"operation"`
@@ -361,38 +257,134 @@ type xmlmcCountResponse struct {
 			} `json:"row"`
 		} `json:"rowData"`
 	} `json:"params"`
-	State stateJSONStruct `json:"state"`
+	State stateStructJSON `json:"state"`
 }
-
 type xmlmcIBridgeResponse struct {
 	MethodResult           string         `xml:"status,attr"`
 	IBridgeResponsePayload string         `xml:"params>responsePayload"`
 	IBridgeResponseError   string         `xml:"params>error"`
-	State                  stateXMLStruct `xml:"state"`
+	State                  stateStructXML `xml:"state"`
 }
-
-type stateXMLStruct struct {
-	Code  string `xml:"code"`
-	Error string `xml:"error"`
-}
-
-type googleResponseStruct struct {
-	Params struct {
-		Data struct {
-			ChromeOSDevices []map[string]interface{} `json:"chromeosdevices"`
-			NextPageToken   string                   `json:"nextPageToken"`
-		} `json:"data"`
-		Error   string `json:"error"`
-		Status  int    `json:"status"`
-		Success bool   `json:"success"`
-		URL     string `json:"url"`
+type xmlmcKeyResponse struct {
+	MethodResult string         `xml:"status,attr"`
+	State        stateStructXML `xml:"state"`
+	Params       struct {
+		Data   string `json:"data"`
+		Schema string `json:"schema"`
+		Title  string `json:"title"`
+		Type   string `json:"type"`
 	} `json:"params"`
 }
+type xmlmcUpdateResponse struct {
+	MethodResult string         `xml:"status,attr"`
+	UpdatedCols  updatedCols    `xml:"params>primaryEntityData>record"`
+	State        stateStructXML `xml:"state"`
+}
+type updatedCols struct {
+	AssetPK string       `xml:"h_pk_asset_id"`
+	ColList []updatedCol `xml:",any"`
+}
+type updatedCol struct {
+	XMLName xml.Name `xml:""`
+	Amount  string   `xml:",chardata"`
+}
+type xmlmcGroupResponse struct {
+	Params struct {
+		Group []struct {
+			ID   string `json:"id"`
+			Type string `json:"type"`
+			Name string `json:"name"`
+		} `json:"group"`
+		MaxPages int `json:"maxPages"`
+	} `json:"params"`
+	State stateStructJSON `json:"state"`
+}
+type xmlmcAssetRecordsResponse struct {
+	Params struct {
+		RowData struct {
+			Row []map[string]interface{} `json:"row"`
+		} `json:"rowData"`
+	} `json:"params"`
+	State stateStructJSON `json:"state"`
+}
+type xmlmcSoftwareRecordsResponse struct {
+	Params struct {
+		RowData struct {
+			Row []softwareRecordDetailsStruct `xml:"row"`
+		} `xml:"rowData"`
+	} `xml:"params"`
+	State stateStructJSON `xml:"state"`
+}
+type softwareRecordDetailsStruct struct {
+	Count      uint64 `xml:"count"`
+	HPKID      int    `xml:"h_pk_id"`
+	HFKAssetID int    `xml:"h_fk_asset_id"`
+	HAppName   string `xml:"h_app_name"`
+	HAppID     string `xml:"h_app_id"`
+}
 
-type googlePayloadStruct struct {
-	Customer    string `json:"customerId"`
-	MaxResults  int    `json:"maxResults"`
-	PageToken   string `json:"pageToken"`
-	Query       string `json:"query"`
-	OrgUnitPath string `json:"orgUnitPath"`
+// -- Sites Structs
+type xmlmcSiteResponse struct {
+	Params struct {
+		Sites string `json:"sites"`
+		Count string `json:"count"`
+	} `json:"params"`
+	State stateStructJSON `json:"state"`
+}
+type siteRowMultiple struct {
+	Row []siteDetailsStruct `json:"row"`
+}
+type siteRowSingle struct {
+	Row siteDetailsStruct `json:"row"`
+}
+type siteDetailsStruct struct {
+	ID   string `json:"h_id"`
+	Name string `json:"h_site_name"`
+}
+
+// -- User Structs
+type xmlmcUserListResponse struct {
+	Params struct {
+		RowData struct {
+			Row []userAccountStruct `json:"row"`
+		} `json:"rowData"`
+	} `json:"params"`
+	State stateStructJSON `json:"state"`
+}
+type userAccountStruct struct {
+	HUserID     string `json:"h_user_id"`
+	HLoginID    string `json:"h_login_id"`
+	HEmployeeID string `json:"h_employee_id"`
+	HName       string `json:"h_name"`
+	HFirstName  string `json:"h_first_name"`
+	HLastName   string `json:"h_last_name"`
+	HEmail      string `json:"h_email"`
+	HAttrib1    string `json:"h_attrib1"`
+	HAttrib8    string `json:"h_attrib8"`
+}
+
+// -- Asset Type Structs
+type xmlmcTypeListResponse struct {
+	MethodResult string               `xml:"status,attr"`
+	Params       paramsTypeListStruct `xml:"params"`
+	State        stateStructXML       `xml:"state"`
+}
+type paramsTypeListStruct struct {
+	Row assetTypeObjectStruct `xml:"rowData>row"`
+}
+type assetTypeObjectStruct struct {
+	Type      string `xml:"h_name"`
+	TypeClass string `xml:"h_class"`
+	TypeID    int    `xml:"h_pk_type_id"`
+}
+
+// -- Application list structs
+type xmlmcApplicationResponse struct {
+	Status bool `json:"@status"`
+	Params struct {
+		Applications []struct {
+			Name string `json:"name"`
+		} `json:"application"`
+	} `json:"params"`
+	State stateStructJSON `json:"state"`
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// Asset count for caching
 func getAssetCount(assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct) (assetCount uint64, err error) {
 	hornbillImport.SetParam("application", appServiceManager)
 	hornbillImport.SetParam("queryName", "getAssetsListForImport")
@@ -49,6 +50,7 @@ func getAssetCount(assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct)
 	return
 }
 
+// Cache asset records from Hornbill
 func getAssetRecords(assetCount uint64, assetType assetTypesStruct, espXmlmc *apiLib.XmlmcInstStruct) (map[string]map[string]interface{}, error) {
 	var (
 		loopCount uint64
@@ -75,7 +77,6 @@ func getAssetRecords(assetCount uint64, assetType assetTypesStruct, espXmlmc *ap
 	case "telecoms":
 		queryType = "recordsTelecoms"
 	}
-	//-- Init Map
 	//-- Load Results in pages of pageSize
 	bar := pb.StartNew(int(assetCount))
 	RespBody := ""
@@ -197,7 +198,7 @@ func addInPolicy(assetId string, espXmlmc *apiLib.XmlmcInstStruct, buffer *bytes
 			return boolReturn
 		} else {
 			if xmlRespon.MethodResult != "ok" {
-				buffer.WriteString(loggerGen(4, "Failed to bring asset in policy: "+xmlRespon.State.ErrorRet))
+				buffer.WriteString(loggerGen(4, "Failed to bring asset in policy: "+xmlRespon.State.Error))
 				buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
 				return boolReturn
 			} else {
@@ -239,7 +240,7 @@ func removeInPolicy(inPolicyId string, espXmlmc *apiLib.XmlmcInstStruct, buffer 
 			return boolReturn
 		} else {
 			if xmlRespon.MethodResult != "ok" {
-				buffer.WriteString(loggerGen(4, "Failed to bring asset out of policy: "+xmlRespon.State.ErrorRet))
+				buffer.WriteString(loggerGen(4, "Failed to bring asset out of policy: "+xmlRespon.State.Error))
 				buffer.WriteString(loggerGen(1, "API XML: "+XMLSTRING))
 				return boolReturn
 			} else {
@@ -706,7 +707,7 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 		}
 
 		if xmlRespon.MethodResult != "ok" {
-			buffer.WriteString(loggerGen(4, "Unable to add asset: "+xmlRespon.State.ErrorRet))
+			buffer.WriteString(loggerGen(4, "Unable to add asset: "+xmlRespon.State.Error))
 			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			mutexCounters.Lock()
 			counters.createFailed++
@@ -748,7 +749,7 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 			}
 
 			if xmlRespon.MethodResult != "ok" {
-				buffer.WriteString(loggerGen(3, "Unable to update Asset URN: "+xmlRespon.State.ErrorRet))
+				buffer.WriteString(loggerGen(3, "Unable to update Asset URN: "+xmlRespon.State.Error))
 				buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 				return assetID, true
 			}
@@ -932,8 +933,8 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 			return false
 		}
 
-		if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" && !strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected") {
-			buffer.WriteString(loggerGen(4, "Unable to Update Asset: "+xmlRespon.State.ErrorRet))
+		if xmlRespon.MethodResult != "ok" && xmlRespon.State.Error != "There are no values to update" && !strings.Contains(xmlRespon.State.Error, "Superfluous entity record update detected") {
+			buffer.WriteString(loggerGen(4, "Unable to Update Asset: "+xmlRespon.State.Error))
 			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLUpdate))
 			mutexCounters.Lock()
 			counters.updateFailed++
@@ -941,7 +942,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 			return false
 		}
 
-		if xmlRespon.MethodResult != "ok" && (xmlRespon.State.ErrorRet == "There are no values to update" || strings.Contains(xmlRespon.State.ErrorRet, "Superfluous entity record update detected")) {
+		if xmlRespon.MethodResult != "ok" && (xmlRespon.State.Error == "There are no values to update" || strings.Contains(xmlRespon.State.Error, "Superfluous entity record update detected")) {
 			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLUpdate))
 			mutexCounters.Lock()
 			counters.updateSkipped++
@@ -1024,8 +1025,8 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 			return false
 		}
 
-		if xmlResponExt.MethodResult != "ok" && xmlResponExt.State.ErrorRet != "There are no values to update" && !strings.Contains(xmlResponExt.State.ErrorRet, "Superfluous entity record update detected") {
-			buffer.WriteString(loggerGen(4, "Unable to Update Asset Extended Details: "+xmlResponExt.State.ErrorRet))
+		if xmlResponExt.MethodResult != "ok" && xmlResponExt.State.Error != "There are no values to update" && !strings.Contains(xmlResponExt.State.Error, "Superfluous entity record update detected") {
+			buffer.WriteString(loggerGen(4, "Unable to Update Asset Extended Details: "+xmlResponExt.State.Error))
 			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLUpdateExt))
 			mutexCounters.Lock()
 			counters.updateRelatedFailed++
@@ -1033,7 +1034,7 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 			return false
 		}
 
-		if xmlResponExt.MethodResult != "ok" && (xmlResponExt.State.ErrorRet == "There are no values to update" || strings.Contains(xmlResponExt.State.ErrorRet, "Superfluous entity record update detected")) {
+		if xmlResponExt.MethodResult != "ok" && (xmlResponExt.State.Error == "There are no values to update" || strings.Contains(xmlResponExt.State.Error, "Superfluous entity record update detected")) {
 			mutexCounters.Lock()
 			counters.updateRelatedSkipped++
 			mutexCounters.Unlock()
@@ -1070,8 +1071,8 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 					buffer.WriteString(loggerGen(4, "Unable to read response from Hornbill instance when setting Last Updated values:"+err.Error()))
 					buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 				} else {
-					if xmlRespon.MethodResult != "ok" && xmlRespon.State.ErrorRet != "There are no values to update" {
-						buffer.WriteString(loggerGen(4, "Unable to set Last Updated details for asset: "+xmlRespon.State.ErrorRet))
+					if xmlRespon.MethodResult != "ok" && xmlRespon.State.Error != "There are no values to update" {
+						buffer.WriteString(loggerGen(4, "Unable to set Last Updated details for asset: "+xmlRespon.State.Error))
 						buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 					} else {
 						buffer.WriteString(loggerGen(1, "Asset Last Updated date & user updated successfully: "+strAssetID))

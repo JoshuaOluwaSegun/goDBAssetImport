@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.3.0 (September 23rd, 2022)
+
+Features:
+
+- Added support to import asset records from vmware Workspace One Unified Endpoint Manager 
+
 ## 3.2.0 (September 15th, 2022) 
 
 Features:

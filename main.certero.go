@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -71,6 +70,7 @@ func getAssetsFromCertero(assetType assetTypesStruct) (map[string]map[string]int
 			}
 			returnMap[assetIdentifier] = assetRecord
 		}
+
 		// Break the loop if no token is returned
 		if assetsList.Odata_nextLink == "" {
 			break
@@ -117,7 +117,7 @@ func getDevicesPageCertero(assetType assetTypesStruct, nextPageURL string) (asse
 		return assetsResponse, errors.New("Failed to read the body of the response: " + err.Error())
 	}
 	if err := json.Unmarshal([]byte(body), &assetsResponse); err != nil {
-		log.Fatal(err)
+		return assetsResponse, errors.New("Failed to unmarshal JSON response from Certero: " + err.Error())
 	}
 	return
 }

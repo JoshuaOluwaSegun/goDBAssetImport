@@ -23,8 +23,11 @@ func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, es
 		return softwareRecords, softwareRecordsHash, err
 	}
 
-	if configCertero {
+	if configCertero || configWorkspaceOne {
 		var recordMap []map[string]interface{}
+		if configWorkspaceOne {
+			assetType.SoftwareInventory.ParentObject = "InstalledSoftware"
+		}
 		if u[assetType.SoftwareInventory.ParentObject] != nil {
 			recordMap = u[assetType.SoftwareInventory.ParentObject].([]map[string]interface{})
 			recordsHash := Hash(recordMap)
@@ -167,7 +170,7 @@ func addSoftwareInventoryRecord(fkAssetID string, softwareRecord map[string]inte
 
 	if xmlRespon.MethodResult != "ok" {
 		buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
-		err = errors.New("Unable to create software inventory record: " + xmlRespon.State.ErrorRet)
+		err = errors.New("Unable to create software inventory record: " + xmlRespon.State.Error)
 		return
 	}
 	pkid = xmlRespon.Params.HPKID
@@ -201,7 +204,7 @@ func deleteSoftwareInventoryRecord(pkid int, espXmlmc *apiLib.XmlmcInstStruct, b
 
 	if xmlRespon.MethodResult != "ok" {
 		buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
-		err = errors.New("Unable to delete software inventory record: " + xmlRespon.State.ErrorRet)
+		err = errors.New("Unable to delete software inventory record: " + xmlRespon.State.Error)
 		return
 	}
 	debugLog(buffer, "Software inventory record successfully deleted: "+strconv.Itoa(pkid))
@@ -415,7 +418,7 @@ func updateAssetSI(assetID string, softwareRecords map[string]map[string]interfa
 		}
 
 		if xmlRespon.MethodResult != "ok" {
-			buffer.WriteString(loggerGen(3, "Unable to update Asset Software Inventory ID: "+xmlRespon.State.ErrorRet))
+			buffer.WriteString(loggerGen(3, "Unable to update Asset Software Inventory ID: "+xmlRespon.State.Error))
 			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
 			return
 		}

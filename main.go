@@ -92,7 +92,8 @@ func main() {
 	configLDAP = (strings.EqualFold(importConf.SourceConfig.Source, "ldap"))
 	configGoogle = (strings.EqualFold(importConf.SourceConfig.Source, "google"))
 	configCertero = (strings.EqualFold(importConf.SourceConfig.Source, "certero"))
-	configDB = (!configCSV && !configNexthink && !configLDAP && !configGoogle && !configCertero)
+	configWorkspaceOne = (strings.EqualFold(importConf.SourceConfig.Source, "workspaceone"))
+	configDB = (!configCSV && !configNexthink && !configLDAP && !configGoogle && !configCertero && !configWorkspaceOne)
 
 	if configDB {
 		//Build DB connection string
@@ -160,6 +161,19 @@ func main() {
 				logger(4, err.Error(), true, true)
 			} else {
 				boolSQLAssets = true
+			}
+		} else if configWorkspaceOne {
+			tokenObj, err := generateWorkspaceOneAccessToken()
+			if err != nil {
+				logger(4, err.Error(), true, true)
+			} else {
+				key.AccessToken = tokenObj.AccessToken
+				arrAssets, err = getAssetsFromWorkspaceOne(v)
+				if err != nil {
+					logger(4, err.Error(), true, true)
+				} else {
+					boolSQLAssets = true
+				}
 			}
 		} else {
 			//-- Query database

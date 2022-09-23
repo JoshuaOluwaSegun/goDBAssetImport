@@ -249,8 +249,8 @@ func getKeysafeKey(keyId int) {
 		logger(4, "Unable to unmarshal key information from Keysafe: "+err.Error(), true, true)
 		os.Exit(1)
 	}
-	if JSONResp.State.ErrorRet != "" {
-		logger(4, "API call to retrieve key information from Keysafe failed: "+JSONResp.State.ErrorRet, true, true)
+	if JSONResp.State.Error != "" {
+		logger(4, "API call to retrieve key information from Keysafe failed: "+JSONResp.State.Error, true, true)
 		os.Exit(1)
 	}
 

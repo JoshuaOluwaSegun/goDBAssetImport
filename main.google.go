@@ -11,6 +11,27 @@ import (
 	apiLib "github.com/hornbill/goApiLib"
 )
 
+type googleResponseStruct struct {
+	Params struct {
+		Data struct {
+			ChromeOSDevices []map[string]interface{} `json:"chromeosdevices"`
+			NextPageToken   string                   `json:"nextPageToken"`
+		} `json:"data"`
+		Error   string `json:"error"`
+		Status  int    `json:"status"`
+		Success bool   `json:"success"`
+		URL     string `json:"url"`
+	} `json:"params"`
+}
+
+type googlePayloadStruct struct {
+	Customer    string `json:"customerId"`
+	MaxResults  int    `json:"maxResults"`
+	PageToken   string `json:"pageToken"`
+	Query       string `json:"query"`
+	OrgUnitPath string `json:"orgUnitPath"`
+}
+
 func getAssetsFromGoogle(assetType assetTypesStruct) (map[string]map[string]interface{}, error) {
 	//Initialise Asset Map
 	returnMap := make(map[string]map[string]interface{})
@@ -22,7 +43,7 @@ func getAssetsFromGoogle(assetType assetTypesStruct) (map[string]map[string]inte
 	gEspXmlmc := apiLib.NewXmlmcInstance(importConf.InstanceID)
 	gEspXmlmc.SetAPIKey(importConf.APIKey)
 	for {
-		assetsList, err := getDevicesPage(gEspXmlmc, nextPageToken)
+		assetsList, err := getDevicesPageGoogle(gEspXmlmc, nextPageToken)
 		if err != nil {
 			return returnMap, err
 		}
@@ -39,12 +60,13 @@ func getAssetsFromGoogle(assetType assetTypesStruct) (map[string]map[string]inte
 	}
 	if len(returnMap) == 0 {
 		logger(3, "No "+assetType.AssetType+" asset records returned from Google - check your configuration!", true, true)
+	} else {
+		logger(2, "Total "+assetType.AssetType+" asset records returned from Google: "+strconv.Itoa(len(returnMap)), true, true)
 	}
-	logger(2, "Total "+assetType.AssetType+" asset records returned from Google: "+strconv.Itoa(len(returnMap)), true, true)
 	return returnMap, nil
 }
 
-func getDevicesPage(gEspXmlmc *apiLib.XmlmcInstStruct, pageToken string) (usersResponse googleResponseStruct, err error) {
+func getDevicesPageGoogle(gEspXmlmc *apiLib.XmlmcInstStruct, pageToken string) (assetsResponse googleResponseStruct, err error) {
 	var payload = googlePayloadStruct{
 		Customer:    importConf.SourceConfig.Google.Customer,
 		MaxResults:  200,
@@ -95,7 +117,7 @@ func getDevicesPage(gEspXmlmc *apiLib.XmlmcInstStruct, pageToken string) (usersR
 		return
 	}
 
-	err = json.Unmarshal([]byte(xmlRespon.IBridgeResponsePayload), &usersResponse)
+	err = json.Unmarshal([]byte(xmlRespon.IBridgeResponsePayload), &assetsResponse)
 	if err != nil {
 		logger(4, "getDevicesPage::iBridgeInvoke:jsonUnmarshal:"+err.Error(), true, true)
 		logger(4, "JSON: "+xmlRespon.IBridgeResponsePayload, false, true)

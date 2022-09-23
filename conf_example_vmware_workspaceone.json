@@ -1,0 +1,57 @@
+{
+    "APIKey": "yourapikey",
+    "InstanceId": "yourinstanceid",
+    "KeysafeKeyID": 0,
+    "LogSizeBytes": 1000000,
+    "HornbillUserIDColumn": "h_user_id",
+    "SourceConfig": {
+        "Source": "workspaceone"
+    },
+    "AssetTypes": [{
+        "AssetType": "Smart Phone",
+        "OperationType": "Both",
+        "Filters": {
+            "User": "",
+            "ModelIdentifier": "",
+            "DevicePlatformType": "",
+            "Ownership": "",
+            "OrganizationGroupUUID": "",
+            "ComplianceStatus": "",
+            "SeenSince": ""
+        },
+        "PreserveShared": false,
+        "PreserveState": false,
+        "PreserveSubState": false,
+        "PreserveOperationalState": false,
+        "AssetIdentifier": {
+            "SourceColumn": "{{.imei}}",
+            "Entity": "AssetsMobileDevice",
+            "EntityColumn": "h_imei_number"
+        },
+        "SoftwareInventory": {
+            "AppIDColumn": "{{.bundle_id}}",
+            "Mapping": {
+                "h_app_id":"{{.bundle_id}}",
+                "h_app_name": "{{.name}}",
+                "h_app_vendor":"{{.name}}",
+                "h_app_version":"{{.installed_version}}",
+                "h_app_info":"{{.application_url}}"
+            }
+        }
+    }],
+    "AssetGenericFieldMapping": {
+        "h_name": "{{.device_friendly_name}}",
+        "h_asset_tag": "{{.asset_number}}",
+        "h_notes": "Device Reported Name: {{.device_reported_name}}\nUDID: {{.udid}}"
+    },
+    "AssetTypeFieldMapping": {
+        "h_imei_number": "{{.imei}}",
+        "h_manufacturer": "{{.oem_info}}",
+        "h_model": "{{.model_identifier}}",
+        "h_name": "{{.device_friendly_name}}",
+        "h_os_description": "{{.platform_name}}",
+        "h_os_version": "{{.operating_system}}",
+        "h_phone_number": "{{ (index .device_cellular_network_info 0).phone_number }}",
+        "h_serial_number": "{{.serial_number}}"
+    }
+}

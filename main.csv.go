@@ -27,21 +27,18 @@ func getAssetsFromCSV(assetType assetTypesStruct) (bool, map[string]map[string]i
 	logger(3, " ", false, false)
 	logger(3, "Running CSV query for "+assetType.AssetType+" assets. Please wait...", true, true)
 
-	//rows := []map[string]string{}
 	file, err := os.Open(assetType.CSVFile)
 	if err != nil {
-		// err is printable
 		// elements passed are separated by space automatically
 		logger(4, "Error opening CSV file: "+err.Error()+" for "+assetType.AssetType+" assets.", true, true)
 		return false, arrAssetMaps
 	}
-	// automatically call Close() at the end of current method
 	defer file.Close()
 
 	bom := make([]byte, 3)
 	file.Read(bom)
 	if bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF {
-		// BOM Detected, continue with feeding the file fmt.Println("BOM")
+		// BOM Detected, continue with feeding the file
 	} else {
 		// No BOM Detected, reset the file feed
 		file.Seek(0, 0)
@@ -92,7 +89,5 @@ func getAssetsFromCSV(assetType assetTypesStruct) (bool, map[string]map[string]i
 		}
 	}
 	logger(3, ""+strconv.Itoa(intAssetSuccess)+" of "+strconv.Itoa(intAssetCount)+" returned assets successfully retrieved ready for processing.", true, true)
-
 	return true, arrAssetMaps
-
 }

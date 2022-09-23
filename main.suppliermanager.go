@@ -33,7 +33,7 @@ func addSupplierToAsset(assetID, supplierID string, espXmlmc *apiLib.XmlmcInstSt
 
 		if xmlRespon.MethodResult != "ok" {
 			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
-			err = errors.New("Unable to create Supplier to Asset relationship record: " + xmlRespon.State.ErrorRet)
+			err = errors.New("Unable to create Supplier to Asset relationship record: " + xmlRespon.State.Error)
 			return
 		}
 		if xmlRespon.Params.Outcome != "success" {
@@ -78,7 +78,7 @@ func addSupplierContractToAsset(assetID, contractID string, espXmlmc *apiLib.Xml
 
 		if xmlRespon.MethodResult != "ok" {
 			buffer.WriteString(loggerGen(1, "API Call XML: "+XMLSTRING))
-			err = errors.New("Unable to create Supplier Contract to Asset relationship record: " + xmlRespon.State.ErrorRet)
+			err = errors.New("Unable to create Supplier Contract to Asset relationship record: " + xmlRespon.State.Error)
 			return
 		}
 		if xmlRespon.Params.Outcome != "success" {

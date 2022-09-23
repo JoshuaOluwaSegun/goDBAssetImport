@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/bwmarrin/go-objectsid"
-	"github.com/hornbill/ldap"
+	"github.com/mavricknz/ldap"
 )
 
 func connectLDAP() *ldap.LDAPConnection {
@@ -45,7 +45,7 @@ func connectLDAP() *ldap.LDAPConnection {
 	return nil
 }
 
-//-- Query LDAP
+// -- Query LDAP
 func queryLDAP(assetType assetTypesStruct) (map[string]map[string]interface{}, bool) {
 
 	logger(3, "LDAP DSN: "+assetType.LDAPDSN, true, true)
