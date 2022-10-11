@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hornbill/pb"
+	"github.com/cheggaaa/pb"
 )
 
 func loadUsers() {
@@ -143,8 +143,13 @@ func getCount(query string) uint64 {
 	return count
 }
 
-func getUserID(u map[string]interface{}, userCol string, buffer *bytes.Buffer) (userID, userURN, userName string) {
-	userMapping := fmt.Sprintf("%v", importConf.AssetGenericFieldMapping[userCol])
+func getUserID(u map[string]interface{}, userCol string, buffer *bytes.Buffer, typeSpecific bool) (userID, userURN, userName string) {
+	var userMapping string
+	if typeSpecific {
+		userMapping = fmt.Sprintf("%v", importConf.AssetTypeFieldMapping[userCol])
+	} else {
+		userMapping = fmt.Sprintf("%v", importConf.AssetGenericFieldMapping[userCol])
+	}
 	userID = getFieldValue(userCol, userMapping, u, buffer)
 	if userID == "__sharedasset__" {
 		userName = "Shared"

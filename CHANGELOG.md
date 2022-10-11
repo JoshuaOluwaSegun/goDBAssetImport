@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.3.1 (October 11th, 2022)
+
+Fixed:
+
+- h_last_logged_on_user not able to be mapped into target records
+
 ## 3.3.0 (September 23rd, 2022)
 
 Features:

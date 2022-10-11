@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hornbill/pb"
+	"github.com/cheggaaa/pb"
 )
 
 func loadGroups(groups []string) {

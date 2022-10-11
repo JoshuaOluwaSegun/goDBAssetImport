@@ -570,13 +570,13 @@ func createAsset(assetType assetTypesStruct, u map[string]interface{}, strNewAss
 	departmentID, departmentName := getGroupID(u, "department", buffer)
 
 	//Get Owned By details
-	_, ownedByURN, ownedByName := getUserID(u, "h_owned_by", buffer)
+	_, ownedByURN, ownedByName := getUserID(u, "h_owned_by", buffer, false)
 
 	//Get Used By details
-	_, usedByURN, usedByName := getUserID(u, "h_used_by", buffer)
+	_, usedByURN, usedByName := getUserID(u, "h_used_by", buffer, false)
 
 	//Get Last Logged On details
-	_, lastLoggedOnByURN, _ := getUserID(u, "h_last_logged_on_user", buffer)
+	_, lastLoggedOnByURN, _ := getUserID(u, "h_last_logged_on_user", buffer, true)
 
 	//Get/Set params from map stored against FieldMapping
 	espXmlmc.SetParam("application", appServiceManager)
@@ -802,13 +802,13 @@ func updateAsset(assetType assetTypesStruct, u map[string]interface{}, strAssetI
 	departmentID, departmentName := getGroupID(u, "department", buffer)
 
 	//Get Owned By details
-	ownedByID, ownedByURN, ownedByName := getUserID(u, "h_owned_by", buffer)
+	ownedByID, ownedByURN, ownedByName := getUserID(u, "h_owned_by", buffer, false)
 
 	//Get Used By details
-	usedByID, usedByURN, usedByName := getUserID(u, "h_used_by", buffer)
+	usedByID, usedByURN, usedByName := getUserID(u, "h_used_by", buffer, false)
 
 	//Get Last Logged On details
-	_, lastLoggedOnByURN, _ := getUserID(u, "h_last_logged_on_user", buffer)
+	_, lastLoggedOnByURN, _ := getUserID(u, "h_last_logged_on_user", buffer, true)
 
 	//Get/Set params from map stored against FieldMapping
 	espXmlmc.SetParam("application", appServiceManager)
