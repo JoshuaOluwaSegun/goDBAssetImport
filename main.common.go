@@ -60,7 +60,7 @@ func getFieldValue(k string, v string, u map[string]interface{}, buffer *bytes.B
 	}
 	fieldMap = value
 	if fieldMap != "" {
-		if strings.Contains(strings.ToLower(k), "date") {
+		if strings.Contains(strings.ToLower(k), "date") || strings.ToLower(k) == "h_last_logged_on" {
 			fieldMap = checkDateString(fieldMap)
 		}
 	}

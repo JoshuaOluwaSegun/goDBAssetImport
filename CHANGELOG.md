@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.3.2 (October 11th, 2022)
+
+Fixed:
+
+- h_last_logged_on not being populated when a UTC ms format was provided
+
 ## 3.3.1 (October 11th, 2022)
 
 Fixed:
