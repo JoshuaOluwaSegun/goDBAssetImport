@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.3.3 (October 31st, 2022)
+
+Fixed:
+
+- dates were not being cleared when using `__clear__` or "date_conversion_clear"
+
 ## 3.3.2 (October 11th, 2022)
 
 Fixed:
@@ -12,7 +18,7 @@ Fixed:
 
 - h_last_logged_on_user not able to be mapped into target records
 
-##Â 3.3.0 (September 23rd, 2022)
+## 3.3.0 (September 23rd, 2022)
 
 Features:
 
