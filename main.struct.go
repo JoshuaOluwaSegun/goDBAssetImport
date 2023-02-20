@@ -11,7 +11,7 @@ import (
 
 // ----- Constants -----
 const (
-	version           = "3.3.3"
+	version           = "3.3.4"
 	repo              = "hornbill/goDBAssetImport"
 	appServiceManager = "com.hornbill.servicemanager"
 	appName           = "goDBAssetImport"
@@ -327,7 +327,7 @@ type softwareRecordDetailsStruct struct {
 type xmlmcSiteResponse struct {
 	Params struct {
 		Sites string `json:"sites"`
-		Count string `json:"count"`
+		Count int `json:"count"`
 	} `json:"params"`
 	State stateStructJSON `json:"state"`
 }

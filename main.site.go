@@ -35,7 +35,7 @@ func loadSites() {
 		return
 	}
 	//-- Load Results in pages of pageSize
-	count, _ := strconv.Atoi(JSONResp.Params.Count)
+	count := JSONResp.Params.Count
 	bar := pb.StartNew(count)
 	for rowStart < count {
 		logger(3, "Loading Site List Offset: "+fmt.Sprintf("%d", rowStart)+"\n", false, true)

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.3.4 (February 20th, 2023)
+
+Fixed:
+
+- Site Count now returning as integer instead of string
+
 ## 3.3.3 (October 31st, 2022)
 
 Fixed:
