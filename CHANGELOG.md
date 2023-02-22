@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.4.0 (Febryary 22nd, 2023)
+
+Change:
+
+- Complied with latest Go binaries because of security advisory.
+
 ## 3.3.4 (February 20th, 2023)
 
 Fixed:
@@ -24,7 +30,7 @@ Fixed:
 
 - h_last_logged_on_user not able to be mapped into target records
 
-## 3.3.0 (September 23rd, 2022)
+##ï¿½3.3.0 (September 23rd, 2022)
 
 Features:
 
