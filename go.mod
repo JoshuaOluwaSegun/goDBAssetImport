@@ -1,6 +1,6 @@
-module goDBAssetImport
+module github.com/hornbill/goDBAssetImport
 
-go 1.19
+go 1.20
 
 require (
 	github.com/alexbrainman/odbc v0.0.0-20211220213544-9c9a2e61c5e2
@@ -8,7 +8,7 @@ require (
 	github.com/bwmarrin/go-objectsid v0.0.0-20191126144531-5fee401a2f37
 	github.com/cheggaaa/pb v1.0.29
 	github.com/denisenkom/go-mssqldb v0.12.3
-	github.com/fatih/color v1.14.1
+	github.com/fatih/color v1.15.0
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/hornbill/goApiLib v0.0.0-20210702135347-bcef2b442dbc
 	github.com/hornbill/mysql320 v0.0.0-20230221110602-449b6f4f55b2
@@ -33,6 +33,6 @@ require (
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/oauth2 v0.0.0-20181106182150-f42d05182288 // indirect
-	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
 	google.golang.org/appengine v1.3.0 // indirect
 )

@@ -1,6 +1,12 @@
 # CHANGELOG
 
-## 3.4.0 (Febryary 22nd, 2023)
+## 3.4.1 (March 31st, 2023)
+
+Change:
+
+- Added example configuration files for new asset classes: System, Data Processing Record.
+
+## 3.4.0 (February 22nd, 2023)
 
 Change:
 
