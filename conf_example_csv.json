@@ -30,7 +30,7 @@
     }],
     "AssetGenericFieldMapping": {
         "h_name": "{{.Name}}",
-        "h_asset_tag": "{{.AssetTag}}",
+        "h_asset_tag": "{{ (split \"/\" .AssetTag)._0 }}",
         "h_description": "{{.Description}}\n\n{{.Manufacturer}} {{.Model}}",
         "h_operational_state": "{{.OperationalState}}",
         "h_record_state": "{{.State}}"

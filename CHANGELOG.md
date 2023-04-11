@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 3.5.0 (April 11th, 2023)
+
+Feature:
+
+- Added support for the use of additional functions within the mapping templates in the import configuration. Basic example included in the conf_example_csv.json and DesktopsExample.csv files. See the Sprig documentation for further information on available functions and their usage: https://masterminds.github.io/sprig/
+
 ## 3.4.1 (March 31st, 2023)
 
 Change:
@@ -16,7 +22,7 @@ Change:
 
 Fixed:
 
-- Site Count now returning as integer instead of string
+- Site Count now returning as an integer instead of a string
 
 ## 3.3.3 (October 31st, 2022)
 

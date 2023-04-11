@@ -137,7 +137,7 @@ func getCount(query string) uint64 {
 	count, errC := strconv.ParseUint(JSONResp.Params.RowData.Row[0].Count, 10, 16)
 	//-- Check for Error
 	if errC != nil {
-		logger(4, "Unable to get Count for Query ["+query+"] "+err.Error(), false, true)
+		logger(4, "Unable to get Count for Query ["+query+"] "+errC.Error(), false, true)
 		return 0
 	}
 	return count

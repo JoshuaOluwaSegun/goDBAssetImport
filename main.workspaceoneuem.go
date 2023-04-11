@@ -13,6 +13,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/Masterminds/sprig"
 )
 
 type workspaceOneTokenStruct struct {
@@ -60,7 +62,7 @@ func getAssetsFromWorkspaceOne(assetType assetTypesStruct) (map[string]map[strin
 		for _, v := range assetsList.Devices {
 			//Get the asset ID for the current record
 			assetIDIdent := fmt.Sprintf("%v", assetType.AssetIdentifier.SourceColumn)
-			t := template.New(assetIDIdent).Funcs(TemplateFilters)
+			t := template.New(assetIDIdent).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 			tmpl, _ := t.Parse(assetIDIdent)
 			buf := bytes.NewBufferString("")
 			tmpl.Execute(buf, v)

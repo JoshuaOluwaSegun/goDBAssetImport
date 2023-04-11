@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/Masterminds/sprig"
 	"github.com/cheggaaa/pb"
 	apiLib "github.com/hornbill/goApiLib"
 	"github.com/jmoiron/sqlx"
@@ -286,7 +287,7 @@ func processAssets(arrAssets map[string]map[string]interface{}, assetsCache map[
 		matched := regexTemplate.MatchString(assetIDIdent)
 		if matched {
 			//Get the asset ID for the current record - using Go templates
-			t := template.New(assetIDIdent).Funcs(TemplateFilters)
+			t := template.New(assetIDIdent).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 			tmpl, _ := t.Parse(assetIDIdent)
 			buf := bytes.NewBufferString("")
 			tmpl.Execute(buf, assetMap)

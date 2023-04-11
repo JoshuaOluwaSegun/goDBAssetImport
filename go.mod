@@ -3,6 +3,7 @@ module github.com/hornbill/goDBAssetImport
 go 1.20
 
 require (
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/alexbrainman/odbc v0.0.0-20211220213544-9c9a2e61c5e2
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bwmarrin/go-objectsid v0.0.0-20191126144531-5fee401a2f37
@@ -18,16 +19,23 @@ require (
 )
 
 require (
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/go-github/v30 v30.1.0 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/huandu/xstrings v1.4.0 // indirect
+	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mavricknz/asn1-ber v0.0.0-20151103223136-b9df1c2f4213 // indirect
+	github.com/mitchellh/copystructure v1.2.0 // indirect
+	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/tcnksm/go-gitconfig v0.1.2 // indirect
 	github.com/ulikunitz/xz v0.5.9 // indirect
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect

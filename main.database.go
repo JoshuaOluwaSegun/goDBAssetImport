@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	//SQL Package
+	"github.com/Masterminds/sprig"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -132,7 +133,7 @@ func queryAssets(sqlAppend string, assetType assetTypesStruct) (bool, map[string
 			matched := regexTemplate.MatchString(assetIDIdent)
 			if matched {
 				//Get the asset ID for the current record - using Go templates
-				t := template.New(assetIDIdent).Funcs(TemplateFilters)
+				t := template.New(assetIDIdent).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 				tmpl, _ := t.Parse(assetIDIdent)
 				buf := bytes.NewBufferString("")
 				tmpl.Execute(buf, results)
@@ -200,7 +201,7 @@ func querySoftwareInventoryRecords(assetID string, assetTypeDetails assetTypesSt
 		softwareIDIdent := fmt.Sprintf("%v", assetTypeDetails.SoftwareInventory.AppIDColumn)
 		matched := regexTemplate.MatchString(softwareIDIdent)
 		if matched {
-			t := template.New(softwareIDIdent).Funcs(TemplateFilters)
+			t := template.New(softwareIDIdent).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 			tmpl, _ := t.Parse(softwareIDIdent)
 			buf := bytes.NewBufferString("")
 			tmpl.Execute(buf, v)

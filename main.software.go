@@ -9,6 +9,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/Masterminds/sprig"
 	apiLib "github.com/hornbill/goApiLib"
 	"github.com/jmoiron/sqlx"
 )
@@ -39,7 +40,7 @@ func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, es
 				softwareIDIdent := fmt.Sprintf("%v", assetType.SoftwareInventory.AppIDColumn)
 				matched := regexTemplate.MatchString(softwareIDIdent)
 				if matched {
-					t := template.New(softwareIDIdent).Funcs(TemplateFilters)
+					t := template.New(softwareIDIdent).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 					tmpl, _ := t.Parse(softwareIDIdent)
 					buf := bytes.NewBufferString("")
 					tmpl.Execute(buf, v)
@@ -74,7 +75,7 @@ func getSoftwareRecords(u map[string]interface{}, assetType assetTypesStruct, es
 		matched := regexTemplate.MatchString(assetIDIdent)
 		if matched {
 			//Get the asset ID for the current record - using Go templates
-			t := template.New(assetIDIdent).Funcs(TemplateFilters)
+			t := template.New(assetIDIdent).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 			tmpl, _ := t.Parse(assetIDIdent)
 			buf := bytes.NewBufferString("")
 			tmpl.Execute(buf, u)

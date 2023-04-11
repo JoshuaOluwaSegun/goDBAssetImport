@@ -14,6 +14,7 @@ import (
 	"text/template"
 	"unicode"
 
+	"github.com/Masterminds/sprig"
 	"github.com/fatih/color"
 	apiLib "github.com/hornbill/goApiLib"
 )
@@ -44,7 +45,7 @@ func getFieldValue(k string, v string, u map[string]interface{}, buffer *bytes.B
 		return StrAssetType
 	}
 
-	t := template.New(fieldMap).Funcs(TemplateFilters)
+	t := template.New(fieldMap).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 	tmpl, _ := t.Parse(fieldMap)
 	buf := bytes.NewBufferString("")
 	tmpl.Execute(buf, u)

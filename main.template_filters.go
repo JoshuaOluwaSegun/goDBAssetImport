@@ -6,6 +6,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/Masterminds/sprig"
 )
 
 var (
@@ -16,7 +18,7 @@ func checkTemplate() bool {
 	blnFoundError := false
 	for k, v := range importConf.AssetGenericFieldMapping {
 		str := fmt.Sprintf("%v", v)
-		t := template.New(str).Funcs(TemplateFilters)
+		t := template.New(str).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 		_, err := t.Parse(str)
 		if err != nil {
 			fmt.Println("[TEMPLATE] Parsing Error: " + err.Error() + " [" + k + "]")
@@ -25,7 +27,7 @@ func checkTemplate() bool {
 	}
 	for k, v := range importConf.AssetTypeFieldMapping {
 		str := fmt.Sprintf("%v", v)
-		t := template.New(str).Funcs(TemplateFilters)
+		t := template.New(str).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 		_, err := t.Parse(str)
 		if err != nil {
 			fmt.Println("[TEMPLATE] Parsing Error: " + err.Error() + " [" + k + "]")
@@ -35,7 +37,7 @@ func checkTemplate() bool {
 	for _, assetType := range importConf.AssetTypes {
 		for k, v := range assetType.SoftwareInventory.Mapping {
 			str := fmt.Sprintf("%v", v)
-			t := template.New(str).Funcs(TemplateFilters)
+			t := template.New(str).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 			_, err := t.Parse(str)
 			if err != nil {
 				fmt.Println("[TEMPLATE] Parsing Error: " + err.Error() + " [" + assetType.AssetType + "." + k + "]")

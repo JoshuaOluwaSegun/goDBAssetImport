@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"text/template"
 	"time"
+
+	"github.com/Masterminds/sprig"
 )
 
 type certeroResponseStruct struct {
@@ -53,7 +55,7 @@ func getAssetsFromCertero(assetType assetTypesStruct) (map[string]map[string]int
 		for _, v := range assetsList.Assets {
 			//Get the asset ID for the current record
 			assetIDIdent := fmt.Sprintf("%v", assetType.AssetIdentifier.SourceColumn)
-			t := template.New(assetIDIdent).Funcs(TemplateFilters)
+			t := template.New(assetIDIdent).Funcs(TemplateFilters).Funcs(sprig.FuncMap())
 			tmpl, _ := t.Parse(assetIDIdent)
 			buf := bytes.NewBufferString("")
 			tmpl.Execute(buf, v)
